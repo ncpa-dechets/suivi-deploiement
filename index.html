@@ -1121,17 +1121,17 @@ function renderFiche(){
                     <div class="infra-group">
                         <div class="infra-group-title">Points d'apport volontaire</div>
                         <div class="infra-grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:6px">
-                            <div class="infra-box" style="background:#e9d5ff;color:#4c1d95;border-color:#c084fc">
+                            <div class="infra-box" style="background:#fefce8;color:#713f12;border-color:#fde047">
                                 <div class="ib-label">Colonnes EMB</div>
                                 <div class="ib-val">${r.colAerEMB} <span style="font-size:.75rem;font-weight:400;opacity:.6">/</span> ${r.colEntEMB}</div>
                                 <div class="ib-sub">aériennes / enterrées</div>
                             </div>
-                            <div class="infra-box" style="background:#bfdbfe;color:#1e3a8a;border-color:#60a5fa">
+                            <div class="infra-box" style="background:#d1fae5;color:#065f46;border-color:#6ee7b7">
                                 <div class="ib-label">Colonnes VERRE</div>
                                 <div class="ib-val">${r.colAerVerre} <span style="font-size:.75rem;font-weight:400;opacity:.6">/</span> ${r.colEntVerre}</div>
                                 <div class="ib-sub">aériennes / enterrées · total : ${r.colAerVerre+r.colEntVerre}</div>
                             </div>
-                            <div class="infra-box" style="background:#d1fae5;color:#065f46;border-color:#6ee7b7">
+                            <div class="infra-box" style="background:#f1f5f9;color:#374151;border-color:#9ca3af">
                                 <div class="ib-label">Colonnes OMR</div>
                                 <div class="ib-val">${r.colAerOMR} <span style="font-size:.75rem;font-weight:400;opacity:.6">/</span> ${r.colEntOMR}</div>
                                 <div class="ib-sub">aériennes / enterrées</div>
@@ -1263,15 +1263,15 @@ function renderFiche(){
                                 Récapitulatif projets enfouissement colonnes
                             </div>
                             <div class="infra-grid" style="grid-template-columns:repeat(3,1fr)">
-                                <div class="infra-box" style="background:#f0fdf4;color:#14532d;border-color:#4ade80">
+                                <div class="infra-box" style="background:#f1f5f9;color:#374151;border-color:#9ca3af">
                                     <div class="ib-label">OMR</div>
                                     <div class="ib-val">${r.enfouissOMR}</div>
                                 </div>
-                                <div class="infra-box" style="background:#eff6ff;color:#1e3a8a;border-color:#60a5fa">
+                                <div class="infra-box" style="background:#fefce8;color:#713f12;border-color:#fde047">
                                     <div class="ib-label">EMB</div>
                                     <div class="ib-val">${r.enfouissEMB}</div>
                                 </div>
-                                <div class="infra-box" style="background:#fefce8;color:#713f12;border-color:#fbbf24">
+                                <div class="infra-box" style="background:#d1fae5;color:#065f46;border-color:#6ee7b7">
                                     <div class="ib-label">VERRE</div>
                                     <div class="ib-val">${r.enfouissVERRE}</div>
                                 </div>
@@ -1398,8 +1398,8 @@ function renderFiche(){
 function renderEquipFicheTbody(){
     const tbody = document.getElementById('equipSortBody');
     if(!tbody || !window._equipFicheData) return;
-    const fluxColor = { 'OMR':'#6b7280', 'EMBALLAGES ET PAPIERS':'#f97316', 'VERRE':'#059669' };
-    const fluxBg    = { 'OMR':'#f3f4f6', 'EMBALLAGES ET PAPIERS':'#fff7ed', 'VERRE':'#f0fdf4' };
+    const fluxColor = { 'OMR':'#6b7280', 'EMBALLAGES ET PAPIERS':'#a16207', 'VERRE':'#059669' };
+    const fluxBg    = { 'OMR':'#f1f5f9', 'EMBALLAGES ET PAPIERS':'#fefce8', 'VERRE':'#d1fae5' };
     const fluxLabel = { 'OMR':'OMR', 'EMBALLAGES ET PAPIERS':'Emballages & papiers', 'VERRE':'Verre' };
     const s = window._equipFicheSort;
     let data = [...window._equipFicheData];
@@ -2081,7 +2081,7 @@ function getEquipFiltered(){
     });
 }
 
-const FLUX_COLOR = { 'OMR':'#6b7280', 'EMBALLAGES ET PAPIERS':'#f97316', 'VERRE':'#059669' };
+const FLUX_COLOR = { 'OMR':'#6b7280', 'EMBALLAGES ET PAPIERS':'#a16207', 'VERRE':'#059669' };
 const FLUX_LABEL = { 'OMR':'OMR', 'EMBALLAGES ET PAPIERS':'Emb. & papiers', 'VERRE':'Verre' };
 
 function renderEquipTable(){
@@ -2432,8 +2432,8 @@ function buildFichePDFHTML(r){
     const tauxBg    = taux<30?'#fee2e2':taux<70?'#fef3c7':'#dbeafe';
 
     const equipCommune = EQUIP_DATA.filter(e => String(e.codeINSEE).trim() === String(r.code).trim());
-    const fluxColorPDF = { 'OMR':'#6b7280', 'EMBALLAGES ET PAPIERS':'#f97316', 'VERRE':'#059669' };
-    const fluxBgPDF    = { 'OMR':'#f3f4f6', 'EMBALLAGES ET PAPIERS':'#fff7ed', 'VERRE':'#f0fdf4' };
+    const fluxColorPDF = { 'OMR':'#6b7280', 'EMBALLAGES ET PAPIERS':'#a16207', 'VERRE':'#059669' };
+    const fluxBgPDF    = { 'OMR':'#f1f5f9', 'EMBALLAGES ET PAPIERS':'#fefce8', 'VERRE':'#d1fae5' };
     const fluxLabelPDF = { 'OMR':'OMR', 'EMBALLAGES ET PAPIERS':'Emb. & papiers', 'VERRE':'Verre' };
 
     const actions=[];
@@ -2529,7 +2529,7 @@ function buildFichePDFHTML(r){
                 <div style="font-size:.58rem;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:5px">Points de regroupement</div>
                 ${grid('1fr 1fr', ibox('PDR pub.+priv.',r.pdrPubPriv,'existants','#d1fae5','#065f46') + ibox('PDR publics',`${r.pdrPub} → ${r.pdrFutur}`,'act. → futurs','#dbeafe','#1e3a8a'))}
                 <div style="font-size:.58rem;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-top:9px;margin-bottom:5px">Points d'apport volontaire</div>
-                ${grid('1fr 1fr 1fr', ibox('Colonnes EMB',`${r.colAerEMB} / ${r.colEntEMB}`,'aér. / ent.','#ede9fe','#4c1d95') + ibox('Colonnes VERRE',`${r.colAerVerre} / ${r.colEntVerre}`,'aér./ent. · total:'+(r.colAerVerre+r.colEntVerre),'#dbeafe','#1e3a8a') + ibox('Colonnes OMR',`${r.colAerOMR} / ${r.colEntOMR}`,'aér. / ent.','#d1fae5','#065f46'))}
+                ${grid('1fr 1fr 1fr', ibox('Colonnes EMB',`${r.colAerEMB} / ${r.colEntEMB}`,'aér. / ent.','#fefce8','#713f12') + ibox('Colonnes VERRE',`${r.colAerVerre} / ${r.colEntVerre}`,'aér./ent. · total:'+(r.colAerVerre+r.colEntVerre),'#d1fae5','#065f46') + ibox('Colonnes OMR',`${r.colAerOMR} / ${r.colEntOMR}`,'aér. / ent.','#f1f5f9','#374151'))}
                 <div style="margin-top:6px"></div>
                 ${grid('1fr 1fr', ibox('Colonnes textile',r.colTextile,'','#ede9fe','#4c1d95') + ibox('Cabanes cartons',r.cabanesAct,'existantes','#ffedd5','#7c2d12'))}
                 <div style="font-size:.58rem;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-top:9px;margin-bottom:5px">Compostage</div>
@@ -2624,7 +2624,7 @@ function buildFichePDFHTML(r){
                 ${r.enfouissOMR>0||r.enfouissEMB>0||r.enfouissVERRE>0?`
                 <div style="margin-bottom:10px;">
                     <div style="font-size:.58rem;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:5px">Récapitulatif projets enfouissement</div>
-                    ${grid('1fr 1fr 1fr', ibox('OMR',r.enfouissOMR,'','#f0fdf4','#14532d') + ibox('EMB',r.enfouissEMB,'','#eff6ff','#1e3a8a') + ibox('VERRE',r.enfouissVERRE,'','#fefce8','#713f12'))}
+                    ${grid('1fr 1fr 1fr', ibox('OMR',r.enfouissOMR,'','#f1f5f9','#374151') + ibox('EMB',r.enfouissEMB,'','#fefce8','#713f12') + ibox('VERRE',r.enfouissVERRE,'','#d1fae5','#065f46'))}
                     ${note('Commentaire enfouissement',r.commentEnfouiss)}
                 </div>
                 `:''}
