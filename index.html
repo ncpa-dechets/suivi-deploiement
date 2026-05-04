@@ -473,6 +473,65 @@
                     </table>
                 </div>
             </div>
+            <!-- PANNEAU EQUIP — bande en bas de la carte -->
+            <div id="equipPanel" style="display:none;flex-direction:column;width:100%;height:260px;min-height:260px;background:#f8fafc;border-top:2px solid #059669;overflow:hidden;flex-shrink:0;">
+                <div style="padding:7px 14px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                    <i class="fas fa-circle-dot" style="color:#059669;font-size:.85rem"></i>
+                    <span style="font-weight:700;font-size:.82rem;color:#1e293b">Nouveaux équipements PAV</span>
+                    <span id="equipPanelCount" style="background:#d1fae5;color:#065f46;font-size:.67rem;padding:1px 7px;border-radius:20px;font-weight:600"></span>
+                    <div style="display:flex;align-items:center;gap:6px;margin-left:12px;flex-wrap:nowrap;">
+                        <select id="equipFilterCommune" onchange="renderEquipTable()" style="border:1px solid #e2e8f0;border-radius:6px;padding:3px 7px;font-size:.73rem;font-family:inherit;color:#1e293b;cursor:pointer;background:#fff;">
+                            <option value="">Toutes les communes</option>
+                        </select>
+                        <select id="equipFilterFlux" onchange="renderEquipTable()" style="border:1px solid #e2e8f0;border-radius:6px;padding:3px 7px;font-size:.73rem;font-family:inherit;color:#1e293b;cursor:pointer;background:#fff;">
+                            <option value="">Tous les flux</option>
+                        </select>
+                        <select id="equipFilterEtat" onchange="renderEquipTable()" style="border:1px solid #e2e8f0;border-radius:6px;padding:3px 7px;font-size:.73rem;font-family:inherit;color:#1e293b;cursor:pointer;background:#fff;">
+                            <option value="">Tous les états</option>
+                        </select>
+                        <div style="display:flex;align-items:center;gap:4px;border:1px solid #e2e8f0;border-radius:6px;padding:3px 7px;background:#fff;">
+                            <i class="fas fa-search" style="color:#94a3b8;font-size:.68rem"></i>
+                            <input type="text" id="equipSearch" placeholder="Adresse…" oninput="renderEquipTable()" style="border:none;outline:none;font-size:.73rem;font-family:inherit;width:110px;color:#1e293b;">
+                        </div>
+                    </div>
+                    <button onclick="toggleEquipPanel(false)" title="Fermer" style="margin-left:auto;border:none;background:none;cursor:pointer;color:#94a3b8;font-size:1rem;padding:0 4px;flex-shrink:0"><i class="fas fa-xmark"></i></button>
+                </div>
+                <div style="flex:1;overflow:auto;">
+                    <table style="width:100%;border-collapse:collapse;font-size:.74rem;">
+                        <thead id="equipThead"></thead>
+                        <tbody id="equipTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- PANNEAU NC — bande en bas de la carte -->
+            <div id="ncPanel" style="display:none;flex-direction:column;width:100%;height:260px;min-height:260px;background:#f8fafc;border-top:2px solid #b45309;overflow:hidden;flex-shrink:0;">
+                <div style="padding:7px 14px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                    <i class="fas fa-ban" style="color:#b45309;font-size:.85rem"></i>
+                    <span style="font-weight:700;font-size:.82rem;color:#1e293b">Adresses non conteneurisables</span>
+                    <span id="ncPanelCount" style="background:#fef3c7;color:#b45309;font-size:.67rem;padding:1px 7px;border-radius:20px;font-weight:600"></span>
+                    <div style="display:flex;align-items:center;gap:6px;margin-left:12px;flex-wrap:nowrap;">
+                        <select id="ncFilterCommune" onchange="renderNCTable()" style="border:1px solid #e2e8f0;border-radius:6px;padding:3px 7px;font-size:.73rem;font-family:inherit;color:#1e293b;cursor:pointer;background:#fff;">
+                            <option value="">Toutes les communes</option>
+                        </select>
+                        <select id="ncFilterLivrable" onchange="renderNCTable()" style="border:1px solid #e2e8f0;border-radius:6px;padding:3px 7px;font-size:.73rem;font-family:inherit;color:#1e293b;cursor:pointer;background:#fff;">
+                            <option value="">Tous statuts</option>
+                        </select>
+                        <div style="display:flex;align-items:center;gap:4px;border:1px solid #e2e8f0;border-radius:6px;padding:3px 7px;background:#fff;">
+                            <i class="fas fa-search" style="color:#94a3b8;font-size:.68rem"></i>
+                            <input type="text" id="ncSearch" placeholder="Adresse…" oninput="renderNCTable()" style="border:none;outline:none;font-size:.73rem;font-family:inherit;width:110px;color:#1e293b;">
+                        </div>
+                    </div>
+                    <button onclick="toggleNCPanel(false)" title="Fermer" style="margin-left:auto;border:none;background:none;cursor:pointer;color:#94a3b8;font-size:1rem;padding:0 4px;flex-shrink:0"><i class="fas fa-xmark"></i></button>
+                </div>
+                <div style="flex:1;overflow:auto;">
+                    <table style="width:100%;border-collapse:collapse;font-size:.74rem;">
+                        <thead id="ncThead"></thead>
+                        <tbody id="ncTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- Contrôle fond de carte -->
             <div id="layerControl" style="position:absolute;top:12px;left:12px;z-index:1000;background:#fff;border-radius:10px;padding:10px 14px;box-shadow:0 4px 12px rgba(0,0,0,.12);font-size:.75rem;min-width:190px;">
                 <div style="font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;font-size:.65rem;">Fond de carte</div>
@@ -503,6 +562,7 @@
                         <input type="checkbox" id="ncToggle" onchange="toggleNCLayer(this.checked)" style="accent-color:#b45309">
                         <i class="fas fa-ban" style="color:#b45309;width:12px"></i> Afficher les adresses (<span id="ncCount">0</span>)
                     </label>
+                    <button id="btnNCPanel" onclick="toggleNCPanel(true)" style="width:100%;border:1px solid #fde68a;border-radius:6px;padding:5px 8px;cursor:pointer;text-align:left;font-size:.72rem;font-family:inherit;background:#fffbeb;color:#b45309;font-weight:600"><i class="fas fa-table-list" style="width:12px"></i> Ouvrir le tableau</button>
                 </div>
                 <div id="equipToggleWrap" style="display:none;border-top:1px solid #f1f5f9;margin-top:9px;padding-top:9px;">
                     <div style="font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;font-size:.65rem;">Nouveaux équipements</div>
@@ -510,11 +570,12 @@
                         <input type="checkbox" id="equipToggle" checked onchange="toggleEquipLayer(this.checked)" style="accent-color:#059669">
                         <span style="font-size:.7rem">Afficher les colonnes (<span id="equipCount">0</span>)</span>
                     </label>
-                    <div style="display:flex;flex-direction:column;gap:3px;font-size:.67rem;color:#64748b;">
+                    <div style="display:flex;flex-direction:column;gap:3px;font-size:.67rem;color:#64748b;margin-bottom:7px;">
                         <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#6b7280;display:inline-block;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3)"></span> OMR</div>
                         <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#f97316;display:inline-block;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3)"></span> Emballages &amp; papiers</div>
                         <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#059669;display:inline-block;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3)"></span> Verre</div>
                     </div>
+                    <button id="btnEquipPanel" onclick="toggleEquipPanel(true)" style="width:100%;border:1px solid #a7f3d0;border-radius:6px;padding:5px 8px;cursor:pointer;text-align:left;font-size:.72rem;font-family:inherit;background:#ecfdf5;color:#059669;font-weight:600"><i class="fas fa-table-list" style="width:12px"></i> Ouvrir le tableau</button>
                 </div>
             </div>
             <div class="map-legend" id="mapLegend" style="display:none">
@@ -722,20 +783,21 @@ function parse(wb){
             colEntEMB:      num(row2,16),  // Colonnes enterrées EMB
             colAerVerre:    num(row2,17),  // Colonnes aériennes VERRE
             colEntVerre:    num(row2,18),  // Colonnes enterrées VERRE
-            colVerre:       num(row2,19),  // Colonnes verre existantes total
-            colTextile:     num(row2,20),  // Dotation colonnes textiles
-            cabanesAct:     num(row2,21),
-            composteursIndiv:   num(row2,22),  // fraction (taux équipement)
-            composteursPartages:num(row2,23),
-            voiesNL:        num(row2,24),
-            marchesAR:      num(row2,25),
-            marchesSol:     num(row2,26),
-            marchesProb:    num(row2,27),
-            // col 28-31 : avancement livraisons bacs
-            enqueteBoitage: String(val(row2,28)).trim(),  // ex: "Fait"
-            livraison1:     String(val(row2,29)).trim(),  // 1ère livraison à domicile
-            livraison2:     String(val(row2,30)).trim(),  // 2ème livraison à domicile
-            livraison3:     String(val(row2,31)).trim(),  // 3ème livraison à domicile
+            colAerOMR:      num(row2,19),  // Colonnes aériennes OMR  ← nouveau
+            colEntOMR:      num(row2,20),  // Colonnes enterrées OMR  ← nouveau
+            colTextile:     num(row2,21),  // Dotation colonnes textiles  (décalé +2)
+            cabanesAct:     num(row2,22),  // (décalé +2)
+            composteursIndiv:   num(row2,23),  // fraction (taux équipement)  (décalé +2)
+            composteursPartages:num(row2,24),  // (décalé +2)
+            voiesNL:        num(row2,25),  // (décalé +2)
+            marchesAR:      num(row2,26),  // (décalé +2)
+            marchesSol:     num(row2,27),  // (décalé +2)
+            marchesProb:    num(row2,28),  // (décalé +2)
+            // col 29-32 : avancement livraisons bacs  (décalé +2)
+            enqueteBoitage: String(val(row2,29)).trim(),  // ex: "Fait"
+            livraison1:     String(val(row2,30)).trim(),  // 1ère livraison à domicile
+            livraison2:     String(val(row2,31)).trim(),  // 2ème livraison à domicile
+            livraison3:     String(val(row2,32)).trim(),  // 3ème livraison à domicile
 
             // ── Onglet 03 ── (col 0=code, 1=nom, données à partir col 2)
             bacsOMR:        num(row3,2),
@@ -847,7 +909,7 @@ function renderTerritory(){
     const txGlob=totDot>0?Math.round(totBacs/totDot*1000)/10:0;
     const totCab=D.reduce((s,r)=>s+r.cabanesInst,0);
     const totPDR=D.reduce((s,r)=>s+r.pdrCreer,0);
-    const totVerre=D.reduce((s,r)=>s+r.colVerre,0);
+    const totVerre=D.reduce((s,r)=>s+(r.colAerVerre||0)+(r.colEntVerre||0),0);
     const totAirbnb=D.reduce((s,r)=>s+r.airbnb,0);
     const txColor=txGlob<40?'var(--red)':txGlob<70?'var(--orange)':'var(--green)';
 
@@ -947,7 +1009,7 @@ function renderFiche(){
                         <span class="hero-badge"><i class="fas fa-map-marker-alt" style="margin-right:4px"></i>${r.zone||'—'}</span>
                         <span class="hero-badge" style="background:${prioBg}">${prioLabel}</span>
                         ${zoneLC.includes('littorale')?'<span class="hero-badge"><i class="fas fa-umbrella-beach" style="margin-right:4px"></i>Littoral</span>':''}
-                        ${r.dtdict?'<span class="hero-badge" style="background:rgba(5,150,105,.3)"><i class="fas fa-clipboard-check" style="margin-right:4px"></i>DT/DICT '+r.dtdict+'</span>':''}
+
                     </div>
                     <div class="hero-meta">
                         <span><i class="fas fa-hashtag"></i> ${r.code}</span>
@@ -1050,7 +1112,7 @@ function renderFiche(){
                     <!-- GROUPE : Points d'apport volontaire -->
                     <div class="infra-group">
                         <div class="infra-group-title">Points d'apport volontaire</div>
-                        <div class="infra-grid" style="grid-template-columns:1fr 1fr;margin-bottom:6px">
+                        <div class="infra-grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:6px">
                             <div class="infra-box" style="background:#e9d5ff;color:#4c1d95;border-color:#c084fc">
                                 <div class="ib-label">Colonnes EMB</div>
                                 <div class="ib-val">${r.colAerEMB} <span style="font-size:.75rem;font-weight:400;opacity:.6">/</span> ${r.colEntEMB}</div>
@@ -1059,7 +1121,12 @@ function renderFiche(){
                             <div class="infra-box" style="background:#bfdbfe;color:#1e3a8a;border-color:#60a5fa">
                                 <div class="ib-label">Colonnes VERRE</div>
                                 <div class="ib-val">${r.colAerVerre} <span style="font-size:.75rem;font-weight:400;opacity:.6">/</span> ${r.colEntVerre}</div>
-                                <div class="ib-sub">aériennes / enterrées · total : ${r.colVerre}</div>
+                                <div class="ib-sub">aériennes / enterrées · total : ${r.colAerVerre+r.colEntVerre}</div>
+                            </div>
+                            <div class="infra-box" style="background:#d1fae5;color:#065f46;border-color:#6ee7b7">
+                                <div class="ib-label">Colonnes OMR</div>
+                                <div class="ib-val">${r.colAerOMR} <span style="font-size:.75rem;font-weight:400;opacity:.6">/</span> ${r.colEntOMR}</div>
+                                <div class="ib-sub">aériennes / enterrées</div>
                             </div>
                         </div>
                         <div class="infra-grid" style="grid-template-columns:1fr 1fr">
@@ -1593,7 +1660,7 @@ function showMapStats(idx, latlng){
         <div style="font-size:.75rem;line-height:1.8">
             <div>📍 PDR existants : <strong>${r.pdrPubPriv}</strong></div>
             <div>♻️ Colonnes EMB aér./ent. : <strong>${r.colAerEMB} / ${r.colEntEMB}</strong></div>
-            <div>🟢 Colonnes verre : <strong>${r.colVerre}</strong></div>
+            <div>🟢 Colonnes verre : <strong>${r.colAerVerre+r.colEntVerre}</strong></div>
             <div>👕 Colonnes textile : <strong>${r.colTextile}</strong></div>
             <div>🏗️ PDR à créer : <strong style="color:${r.pdrCreer>0?'#059669':'inherit'}">${r.pdrCreer}</strong></div>
             ${r.marchesAR>0?`<div style="color:#dc2626">⚠️ Marches arrière : <strong>${r.marchesAR}</strong></div>`:''}
@@ -1608,15 +1675,29 @@ function updateMapSelection(){
     GEO_LAYER.setStyle(themeStyle);
 }
 
+// ── Fermer tous les panneaux de tableau (exclusivité mutuelle) ───────────
+function closeAllPanels(){
+    ['pdrPanel','equipPanel','ncPanel'].forEach(id=>{
+        const el = document.getElementById(id);
+        if(el) el.style.display = 'none';
+    });
+    const b1=document.getElementById('btnPDRPanel');
+    if(b1) b1.innerHTML='<i class="fas fa-table-list" style="width:12px"></i> Ouvrir le tableau';
+    const b2=document.getElementById('btnEquipPanel');
+    if(b2) b2.innerHTML='<i class="fas fa-table-list" style="width:12px"></i> Ouvrir le tableau';
+    const b3=document.getElementById('btnNCPanel');
+    if(b3) b3.innerHTML='<i class="fas fa-table-list" style="width:12px"></i> Ouvrir le tableau';
+}
+
 // ── Afficher/masquer le panneau tableau PDR ─────────────────────────────
 function togglePDRPanel(show){
+    if(show) closeAllPanels();
     const panel = document.getElementById('pdrPanel');
     panel.style.display = show ? 'flex' : 'none';
     const btn = document.getElementById('btnPDRPanel');
     if(btn) btn.innerHTML = show
         ? '<i class="fas fa-table-list" style="width:12px"></i> Fermer le tableau'
         : '<i class="fas fa-table-list" style="width:12px"></i> Ouvrir le tableau';
-    // Forcer Leaflet à recalculer la taille de la carte
     setTimeout(()=>{ if(MAIN_MAP) MAIN_MAP.invalidateSize(); }, 50);
     if(show) initPDRView();
 }
@@ -1649,7 +1730,8 @@ function renderNCMarkers(){
     document.getElementById('ncToggleWrap').style.display = 'block';
     document.getElementById('ncCount').textContent = NC_DATA.length;
 
-    const markers = NC_DATA.map(p => {
+    window._ncMarkers = [];
+    const markers = NC_DATA.map((p, idx) => {
         // Petit carré rouge/orange selon LIVRABLE
         const color = (p.livrable === 'ROUGE') ? '#dc2626' : '#d97706';
         const icon = L.divIcon({
@@ -1673,9 +1755,11 @@ function renderNCMarkers(){
                 <div style="font-weight:700;font-size:.85rem;color:#1e293b;margin-bottom:3px">${p.adresse}</div>
                 <div style="font-size:.72rem;color:#64748b;margin-bottom:5px">${p.commune}</div>
                 ${typeLabel}
+                <button onclick="selectNCFromMap(${idx})" style="margin-top:8px;padding:5px 10px;border:none;border-radius:7px;background:#b45309;color:#fff;cursor:pointer;font-size:.72rem;font-family:inherit;font-weight:600;width:100%"><i class="fas fa-table-list"></i> Voir dans le tableau →</button>
             </div>
         `, {maxWidth:240});
 
+        window._ncMarkers[idx] = marker;
         return marker;
     });
 
@@ -1702,7 +1786,8 @@ function renderEquipMarkers(){
     const fluxColor = { 'OMR':'#6b7280', 'EMBALLAGES ET PAPIERS':'#f97316', 'VERRE':'#059669' };
     const fluxLabel = { 'OMR':'OMR', 'EMBALLAGES ET PAPIERS':'Emballages & papiers', 'VERRE':'Verre' };
 
-    const markers = EQUIP_DATA.map(e => {
+    window._equipMarkers = [];
+    const markers = EQUIP_DATA.map((e, idx) => {
         const color = fluxColor[e.flux] || '#94a3b8';
         const icon = L.divIcon({
             html: `<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2.5px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45);"></div>`,
@@ -1720,8 +1805,10 @@ function renderEquipMarkers(){
                 </div>
                 <div style="font-size:.7rem;color:#64748b">État : <strong>${e.etat}</strong></div>
                 <div style="font-size:.7rem;color:#64748b">Commune : ${e.commune}</div>
+                <button onclick="selectEquipFromMap(${idx})" style="margin-top:10px;padding:5px 10px;border:none;border-radius:7px;background:#059669;color:#fff;cursor:pointer;font-size:.72rem;font-family:inherit;font-weight:600;width:100%"><i class="fas fa-table-list"></i> Voir dans le tableau →</button>
             </div>
         `, {maxWidth:240});
+        window._equipMarkers[idx] = marker;
         return marker;
     });
 
@@ -1920,6 +2007,239 @@ function selectPDRFromMap(id){
         renderPDRTable();
         setTimeout(()=>{
             const row = document.getElementById('pdr-row-'+id);
+            if(row) row.scrollIntoView({block:'center', behavior:'smooth'});
+        }, 50);
+    }
+}
+
+// ═══════════════════════════════════════
+// PANNEAU TABLEAU — Nouveaux équipements
+// ═══════════════════════════════════════
+let SEL_EQUIP = null;
+
+function toggleEquipPanel(show){
+    if(show) closeAllPanels();
+    const panel = document.getElementById('equipPanel');
+    panel.style.display = show ? 'flex' : 'none';
+    const btn = document.getElementById('btnEquipPanel');
+    if(btn) btn.innerHTML = show
+        ? '<i class="fas fa-table-list" style="width:12px"></i> Fermer le tableau'
+        : '<i class="fas fa-table-list" style="width:12px"></i> Ouvrir le tableau';
+    setTimeout(()=>{ if(MAIN_MAP) MAIN_MAP.invalidateSize(); }, 50);
+    if(show) initEquipView();
+}
+
+function initEquipView(){
+    const selCommune = document.getElementById('equipFilterCommune');
+    const selFlux    = document.getElementById('equipFilterFlux');
+    const selEtat    = document.getElementById('equipFilterEtat');
+
+    if(selCommune.options.length <= 1){
+        [...new Set(EQUIP_DATA.map(e=>e.commune).filter(Boolean))].sort()
+            .forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; selCommune.appendChild(o); });
+    }
+    if(selFlux.options.length <= 1){
+        [...new Set(EQUIP_DATA.map(e=>e.flux).filter(Boolean))].sort()
+            .forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; selFlux.appendChild(o); });
+    }
+    if(selEtat.options.length <= 1){
+        [...new Set(EQUIP_DATA.map(e=>e.etat).filter(Boolean))].sort()
+            .forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; selEtat.appendChild(o); });
+    }
+    renderEquipTable();
+}
+
+function getEquipFiltered(){
+    const commune = document.getElementById('equipFilterCommune').value;
+    const flux    = document.getElementById('equipFilterFlux').value;
+    const etat    = document.getElementById('equipFilterEtat').value;
+    const search  = (document.getElementById('equipSearch').value||'').toLowerCase().trim();
+    return EQUIP_DATA.map((e,i)=>({...e,_idx:i})).filter(e=>{
+        if(commune && e.commune !== commune) return false;
+        if(flux    && e.flux !== flux)       return false;
+        if(etat    && e.etat !== etat)       return false;
+        if(search  && !e.adresse.toLowerCase().includes(search)) return false;
+        return true;
+    });
+}
+
+const FLUX_COLOR = { 'OMR':'#6b7280', 'EMBALLAGES ET PAPIERS':'#f97316', 'VERRE':'#059669' };
+const FLUX_LABEL = { 'OMR':'OMR', 'EMBALLAGES ET PAPIERS':'Emb. & papiers', 'VERRE':'Verre' };
+
+function renderEquipTable(){
+    const data = getEquipFiltered();
+    document.getElementById('equipPanelCount').textContent = data.length + ' / ' + EQUIP_DATA.length;
+
+    const headStyle = 'position:sticky;top:0;background:#f8fafc;padding:8px 10px;text-align:left;font-size:.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid #e2e8f0;white-space:nowrap;';
+    const cols = ['Commune','Adresse','Flux','Type','État',''];
+    document.getElementById('equipThead').innerHTML =
+        '<tr>' + cols.map(c=>`<th style="${headStyle}">${c}</th>`).join('') + '</tr>';
+
+    const tbody = document.getElementById('equipTbody');
+    tbody.innerHTML = '';
+
+    if(!data.length){
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:32px;color:#94a3b8;font-size:.85rem">Aucun équipement correspondant</td></tr>`;
+        return;
+    }
+
+    data.forEach(e => {
+        const color  = FLUX_COLOR[e.flux] || '#94a3b8';
+        const label  = FLUX_LABEL[e.flux] || e.flux;
+        const isSel  = SEL_EQUIP === e._idx;
+        const rowBg  = isSel ? '#d1fae5' : '#fff';
+        const border = isSel ? 'border-left:3px solid #059669;' : 'border-left:3px solid transparent;';
+
+        const tr = document.createElement('tr');
+        tr.id = 'equip-row-' + e._idx;
+        tr.style.cssText = `background:${rowBg};${border}cursor:pointer;transition:background .15s;`;
+        tr.innerHTML =
+            `<td style="padding:7px 10px;border-bottom:1px solid #f1f5f9">${e.commune}</td>`+
+            `<td style="padding:7px 10px;border-bottom:1px solid #f1f5f9">${e.adresse}</td>`+
+            `<td style="padding:7px 10px;border-bottom:1px solid #f1f5f9"><span style="background:${color}22;color:${color};font-size:.68rem;padding:2px 8px;border-radius:10px;font-weight:700;border:1px solid ${color}55;white-space:nowrap">${label}</span></td>`+
+            `<td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:.72rem;color:#475569">${e.type}</td>`+
+            `<td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:.72rem;color:#64748b">${e.etat}</td>`+
+            `<td style="padding:7px 10px;border-bottom:1px solid #f1f5f9"><button onclick="locateEquipOnMap(${e._idx},event)" title="Voir sur la carte" style="border:none;background:#d1fae5;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.7rem;color:#059669;font-family:inherit;white-space:nowrap"><i class="fas fa-map-marker-alt"></i> Carte</button></td>`;
+
+        tr.addEventListener('mouseover', ()=>{ if(SEL_EQUIP!==e._idx) tr.style.background='#ecfdf5'; });
+        tr.addEventListener('mouseout',  ()=>{ if(SEL_EQUIP!==e._idx) tr.style.background=rowBg; });
+        tr.addEventListener('click', ()=> locateEquipOnMap(e._idx));
+        tbody.appendChild(tr);
+    });
+}
+
+function locateEquipOnMap(idx, ev){
+    if(ev) ev.stopPropagation();
+    SEL_EQUIP = idx;
+    const e = EQUIP_DATA[idx];
+    if(!e || !MAIN_MAP) return;
+    if(!EQUIP_VISIBLE){ document.getElementById('equipToggle').checked=true; toggleEquipLayer(true); }
+    MAIN_MAP.flyTo([e.lat, e.lng], 17, {duration:0.8});
+    const m = window._equipMarkers && window._equipMarkers[idx];
+    if(m) setTimeout(()=> m.openPopup(), 850);
+    renderEquipTable();
+}
+
+function selectEquipFromMap(idx){
+    SEL_EQUIP = idx;
+    const panel = document.getElementById('equipPanel');
+    if(panel.style.display === 'none' || !panel.style.display){
+        toggleEquipPanel(true);
+    } else {
+        renderEquipTable();
+        setTimeout(()=>{
+            const row = document.getElementById('equip-row-'+idx);
+            if(row) row.scrollIntoView({block:'center', behavior:'smooth'});
+        }, 50);
+    }
+}
+
+// ═══════════════════════════════════════
+// PANNEAU TABLEAU — Non conteneurisables
+// ═══════════════════════════════════════
+let SEL_NC = null;
+
+function toggleNCPanel(show){
+    if(show) closeAllPanels();
+    const panel = document.getElementById('ncPanel');
+    panel.style.display = show ? 'flex' : 'none';
+    const btn = document.getElementById('btnNCPanel');
+    if(btn) btn.innerHTML = show
+        ? '<i class="fas fa-table-list" style="width:12px"></i> Fermer le tableau'
+        : '<i class="fas fa-table-list" style="width:12px"></i> Ouvrir le tableau';
+    setTimeout(()=>{ if(MAIN_MAP) MAIN_MAP.invalidateSize(); }, 50);
+    if(show) initNCView();
+}
+
+function initNCView(){
+    const selCommune  = document.getElementById('ncFilterCommune');
+    const selLivrable = document.getElementById('ncFilterLivrable');
+
+    if(selCommune.options.length <= 1){
+        [...new Set(NC_DATA.map(p=>p.commune).filter(Boolean))].sort()
+            .forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; selCommune.appendChild(o); });
+    }
+    if(selLivrable.options.length <= 1){
+        [...new Set(NC_DATA.map(p=>p.livrable).filter(Boolean))].sort()
+            .forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; selLivrable.appendChild(o); });
+    }
+    renderNCTable();
+}
+
+function getNCFiltered(){
+    const commune  = document.getElementById('ncFilterCommune').value;
+    const livrable = document.getElementById('ncFilterLivrable').value;
+    const search   = (document.getElementById('ncSearch').value||'').toLowerCase().trim();
+    return NC_DATA.map((p,i)=>({...p,_idx:i})).filter(p=>{
+        if(commune  && p.commune !== commune)   return false;
+        if(livrable && p.livrable !== livrable) return false;
+        if(search   && !p.adresse.toLowerCase().includes(search)) return false;
+        return true;
+    });
+}
+
+function renderNCTable(){
+    const data = getNCFiltered();
+    document.getElementById('ncPanelCount').textContent = data.length + ' / ' + NC_DATA.length;
+
+    const headStyle = 'position:sticky;top:0;background:#f8fafc;padding:8px 10px;text-align:left;font-size:.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid #e2e8f0;white-space:nowrap;';
+    const cols = ['Réf.','Commune','Adresse','Type logement','Statut',''];
+    document.getElementById('ncThead').innerHTML =
+        '<tr>' + cols.map(c=>`<th style="${headStyle}">${c}</th>`).join('') + '</tr>';
+
+    const tbody = document.getElementById('ncTbody');
+    tbody.innerHTML = '';
+
+    if(!data.length){
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:32px;color:#94a3b8;font-size:.85rem">Aucune adresse correspondante</td></tr>`;
+        return;
+    }
+
+    data.forEach(p => {
+        const isRouge = p.livrable === 'ROUGE';
+        const isSel   = SEL_NC === p._idx;
+        const rowBg   = isSel ? '#fef3c7' : (isRouge ? '#fff7f7' : '#fff');
+        const border  = isSel ? 'border-left:3px solid #b45309;' : (isRouge ? 'border-left:3px solid #dc2626;' : 'border-left:3px solid transparent;');
+
+        const tr = document.createElement('tr');
+        tr.id = 'nc-row-' + p._idx;
+        tr.style.cssText = `background:${rowBg};${border}cursor:pointer;transition:background .15s;`;
+        tr.innerHTML =
+            `<td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-family:monospace;font-size:.68rem;color:#64748b">${p.refer}</td>`+
+            `<td style="padding:7px 10px;border-bottom:1px solid #f1f5f9">${p.commune}</td>`+
+            `<td style="padding:7px 10px;border-bottom:1px solid #f1f5f9">${p.adresse}</td>`+
+            `<td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:.72rem;color:#475569">${p.type||'—'}</td>`+
+            `<td style="padding:7px 10px;border-bottom:1px solid #f1f5f9"><span style="background:${isRouge?'#fee2e2':'#fef3c7'};color:${isRouge?'#dc2626':'#d97706'};font-size:.68rem;padding:2px 8px;border-radius:10px;font-weight:700">${p.livrable||'—'}</span></td>`+
+            `<td style="padding:7px 10px;border-bottom:1px solid #f1f5f9"><button onclick="locateNCOnMap(${p._idx},event)" title="Voir sur la carte" style="border:none;background:#fef3c7;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.7rem;color:#b45309;font-family:inherit;white-space:nowrap"><i class="fas fa-map-marker-alt"></i> Carte</button></td>`;
+
+        tr.addEventListener('mouseover', ()=>{ if(SEL_NC!==p._idx) tr.style.background='#fffbeb'; });
+        tr.addEventListener('mouseout',  ()=>{ if(SEL_NC!==p._idx) tr.style.background=rowBg; });
+        tr.addEventListener('click', ()=> locateNCOnMap(p._idx));
+        tbody.appendChild(tr);
+    });
+}
+
+function locateNCOnMap(idx, ev){
+    if(ev) ev.stopPropagation();
+    SEL_NC = idx;
+    const p = NC_DATA[idx];
+    if(!p || !MAIN_MAP) return;
+    if(!NC_VISIBLE){ document.getElementById('ncToggle').checked=true; toggleNCLayer(true); }
+    MAIN_MAP.flyTo([p.lat, p.lng], 18, {duration:0.8});
+    const m = window._ncMarkers && window._ncMarkers[idx];
+    if(m) setTimeout(()=> m.openPopup(), 850);
+    renderNCTable();
+}
+
+function selectNCFromMap(idx){
+    SEL_NC = idx;
+    const panel = document.getElementById('ncPanel');
+    if(panel.style.display === 'none' || !panel.style.display){
+        toggleNCPanel(true);
+    } else {
+        renderNCTable();
+        setTimeout(()=>{
+            const row = document.getElementById('nc-row-'+idx);
             if(row) row.scrollIntoView({block:'center', behavior:'smooth'});
         }, 50);
     }
@@ -2135,7 +2455,7 @@ function buildFichePDFHTML(r){
                         <span style="background:rgba(255,255,255,.2);padding:2px 9px;border-radius:20px;font-size:.63rem;font-weight:600">${r.zone||'—'}</span>
                         <span style="background:${prioBg};padding:2px 9px;border-radius:20px;font-size:.63rem;font-weight:600">${prioLabel}</span>
                         ${(r.zone||'').toLowerCase().includes('littorale')?'<span style="background:rgba(255,255,255,.2);padding:2px 9px;border-radius:20px;font-size:.63rem;font-weight:600">Littoral</span>':''}
-                        ${r.dtdict?`<span style="background:rgba(5,150,105,.35);padding:2px 9px;border-radius:20px;font-size:.63rem;font-weight:600">DT/DICT : ${r.dtdict}</span>`:''}
+
                     </div>
                     <div style="font-size:.67rem;opacity:.75;display:flex;gap:14px;flex-wrap:wrap">
                         <span>Code INSEE : ${r.code}</span>
@@ -2180,7 +2500,7 @@ function buildFichePDFHTML(r){
                 <div style="font-size:.58rem;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:5px">Points de regroupement</div>
                 ${grid('1fr 1fr', ibox('PDR pub.+priv.',r.pdrPubPriv,'existants','#d1fae5','#065f46') + ibox('PDR publics',`${r.pdrPub} → ${r.pdrFutur}`,'act. → futurs','#dbeafe','#1e3a8a'))}
                 <div style="font-size:.58rem;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-top:9px;margin-bottom:5px">Points d'apport volontaire</div>
-                ${grid('1fr 1fr', ibox('Colonnes EMB',`${r.colAerEMB} / ${r.colEntEMB}`,'aér. / ent.','#ede9fe','#4c1d95') + ibox('Colonnes VERRE',`${r.colAerVerre} / ${r.colEntVerre}`,'aér./ent. · total:'+r.colVerre,'#dbeafe','#1e3a8a'))}
+                ${grid('1fr 1fr 1fr', ibox('Colonnes EMB',`${r.colAerEMB} / ${r.colEntEMB}`,'aér. / ent.','#ede9fe','#4c1d95') + ibox('Colonnes VERRE',`${r.colAerVerre} / ${r.colEntVerre}`,'aér./ent. · total:'+(r.colAerVerre+r.colEntVerre),'#dbeafe','#1e3a8a') + ibox('Colonnes OMR',`${r.colAerOMR} / ${r.colEntOMR}`,'aér. / ent.','#d1fae5','#065f46'))}
                 <div style="margin-top:6px"></div>
                 ${grid('1fr 1fr', ibox('Colonnes textile',r.colTextile,'','#ede9fe','#4c1d95') + ibox('Cabanes cartons',r.cabanesAct,'existantes','#ffedd5','#7c2d12'))}
                 <div style="font-size:.58rem;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-top:9px;margin-bottom:5px">Compostage</div>
@@ -2238,8 +2558,8 @@ function buildFichePDFHTML(r){
                 ${grid('1fr 1fr 1fr', ibox('À créer',r.pdrCreer,'',r.pdrCreer>0?'#d1fae5':'#f8fafc',r.pdrCreer>0?'#065f46':'#334155') + ibox('À agrandir',r.pdrAgrandir,'',r.pdrAgrandir>0?'#dbeafe':'#f8fafc',r.pdrAgrandir>0?'#1e3a8a':'#334155') + ibox('À supprimer',r.pdrSuppr,'',r.pdrSuppr>0?'#fee2e2':'#f8fafc',r.pdrSuppr>0?'#7f1d1d':'#334155'))}
             </div>
             <div>
-                <div style="font-size:.58rem;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:5px">Marches arrière & DT/DICT</div>
-                ${grid('1fr 1fr', ibox('Marches AR à supprimer',r.marchesARS,'',r.marchesARS>0?'#fee2e2':'#f8fafc',r.marchesARS>0?'#7f1d1d':'#334155') + ibox('Habilité DT/DICT',r.dtdict||'—'))}
+                <div style="font-size:.58rem;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:5px">Marches arrière</div>
+                ${grid('1fr', ibox('Marches AR à supprimer',r.marchesARS,'',r.marchesARS>0?'#fee2e2':'#f8fafc',r.marchesARS>0?'#7f1d1d':'#334155'))}
                 ${r.dateDebut?`<div style="margin-top:10px;font-size:.75rem;color:#1e293b"><strong>Date cible démarrage :</strong> ${r.dateDebut}</div>`:''}
             </div>
         </div>
