@@ -617,6 +617,7 @@ let NC_VISIBLE = false; // masqué par défaut
 let EQUIP_DATA = []; // nouvelles colonnes AV à créer (onglet 05_Nouveauxequip)
 let EQUIP_LAYER = null;
 let EQUIP_VISIBLE = true;
+let COLLECTE_MAP = {}; // jours de collecte par code INSEE (onglet 07_JRSDECOLLECTE)
 
 // ═══════════════════════════════════════
 // FILE
@@ -656,6 +657,42 @@ function parse(wb){
     const r4 = rawSheet(wb, '04_PDR');
     const r5 = rawSheet(wb, '05_Nouveauxequip');
     const r6 = rawSheet(wb, '06_Nonconteneurisables');
+    const r7 = rawSheet(wb, '07_JRSDECOLLECTE');
+
+    // ── Parse onglet 07_JRSDECOLLECTE ──
+    // Colonnes : 0=CODE INSEE, 1=COMMUNE, 2=CAS PARTICULIER (OUI=littoral)
+    // 3=Jour OMR à partir du 06/04/2026 (communes std) ou haute saison actuelle
+    // 4=OMR haute saison 2026 (juil-août)
+    // 5=OMR basse saison 01/11/2026→01/04/2027
+    // 6=OMR haute saison 2027 (avr-oct, élargie pour littoral)
+    // 7=Jour supplémentaire actuel haute saison (littoral)
+    // 8=Jours supplémentaires haute saison à partir du 01/04/2027
+    // 9=Jour OMR basse saison principal 01/11→31/03 (littoral)
+    // 10=Jour collecte RECYCLABLES à partir du 06/04 ou 11/2026
+    COLLECTE_MAP = {};
+    if(r7 && r7.length > 1){
+        for(let i=1; i<r7.length; i++){
+            const row = r7[i];
+            const code = String(val(row,0)||'').trim();
+            if(!code) continue;
+            // Normalise une valeur : vide si "0", "ras", "pas concernée"
+            const clean = idx => {
+                const s = String(val(row,idx)||'').trim();
+                return (s==='0' || s.toLowerCase()==='ras' || s.toLowerCase().startsWith('pas concern')) ? '' : s;
+            };
+            COLLECTE_MAP[code] = {
+                littoral:      String(val(row,2)||'').trim().toUpperCase() === 'OUI',
+                omrStandard:   clean(3),  // jour OMR annuel communes non-littorales
+                omrHaute2026:  clean(4),  // haute saison 2026 (juil-août)
+                omrBasse2627:  clean(5),  // basse saison 01/11/2026→01/04/2027
+                omrHaute2027:  clean(6),  // haute saison 2027 (avr-oct élargie)
+                suppActuel:    clean(7),  // jour supplémentaire actuel (littoral)
+                supp2027:      clean(8),  // jours supplémentaires 2027
+                omrBassePrinc: clean(9),  // jour OMR basse saison principal (littoral)
+                recyclables:   clean(10), // jour collecte recyclables
+            };
+        }
+    }
 
     // ── Parse onglet 06_Nonconteneurisables ──
     // Colonnes : 0=REFER, 1=CODE INSEE, 2=COMMUNE, 3=ADRESSE, 4=TYPE_LOGEMENT, 5=LIVRABLE, 6=LATITUDE, 7=LONGITUDE
@@ -831,6 +868,9 @@ function parse(wb){
             commentaire:    String(val(row3,21)).trim(),
             dernRenc:       String(val(row3,22)).trim(),
         };
+
+        // Rattacher les données de collecte si l'onglet 07 est présent
+        d.cJours = COLLECTE_MAP[code] || null;
 
         D.push(d);
     }
@@ -1352,6 +1392,82 @@ function renderFiche(){
                         </div>
                     </div>
                 </div>
+
+                <!-- Calendrier de collecte -->
+                ${(()=>{
+                    const cj = r.cJours;
+                    if(!cj) return '';
+                    const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
+                    const pill = (txt, bg, col) => `<span style="display:inline-block;padding:2px 9px;border-radius:20px;font-size:.72rem;font-weight:700;background:${bg};color:${col}">${txt}</span>`;
+
+                    if(!cj.littoral){
+                        // ── Commune non-littorale : affichage compact ──
+                        return `<div class="fsec">
+                            <div class="fsec-title"><i class="fas fa-calendar-days"></i> Calendrier de collecte</div>
+                            <div style="margin-bottom:10px">${pill('Applicable depuis le 06/04/2026','var(--accent-light)','var(--accent)')}</div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                                <div style="background:var(--bg);border-radius:9px;padding:10px 13px;border:1px solid var(--border)">
+                                    <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:5px">OMR</div>
+                                    <div style="font-size:.9rem;font-weight:700;color:var(--text)">${cap(cj.omrStandard)||'—'}</div>
+                                    <div style="font-size:.68rem;color:var(--muted);margin-top:2px">Toute l'année</div>
+                                </div>
+                                <div style="background:var(--bg);border-radius:9px;padding:10px 13px;border:1px solid var(--border)">
+                                    <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:5px">Recyclables</div>
+                                    <div style="font-size:.9rem;font-weight:700;color:var(--green)">${cap(cj.recyclables)||'—'}</div>
+                                    <div style="font-size:.68rem;color:var(--muted);margin-top:2px">Toute l'année</div>
+                                </div>
+                            </div>
+                        </div>`;
+                    } else {
+                        // ── Commune littorale : affichage saisonnier 2 ans ──
+                        const hauteOMR2026 = cap(cj.omrHaute2026 || cj.omrStandard);
+                        const hauteOMR2027 = cap(cj.omrHaute2027);
+                        const basseOMR     = cap(cj.omrBassePrinc || cj.omrBasse2627);
+                        const supp2026     = cap(cj.suppActuel);
+                        const supp2027     = cap(cj.supp2027);
+                        const trow = (label, vHaute, vBasse, subHaute, subBasse) => `<tr>
+                            <td style="padding:8px 10px 8px 0;font-size:.72rem;color:var(--muted);font-weight:600;white-space:nowrap;border-bottom:1px solid var(--border);vertical-align:top">${label}</td>
+                            <td style="padding:8px 8px;font-size:.8rem;font-weight:700;color:var(--text);border-bottom:1px solid var(--border);vertical-align:top">
+                                ${vHaute || '<span style="color:var(--muted);font-weight:400">—</span>'}
+                                ${subHaute ? `<div style="font-size:.63rem;color:var(--muted);font-weight:400;margin-top:2px">${subHaute}</div>` : ''}
+                            </td>
+                            <td style="padding:8px 0 8px 8px;font-size:.8rem;font-weight:700;color:var(--text);border-bottom:1px solid var(--border);vertical-align:top">
+                                ${vBasse || '<span style="color:var(--muted);font-weight:400">—</span>'}
+                                ${subBasse ? `<div style="font-size:.63rem;color:var(--muted);font-weight:400;margin-top:2px">${subBasse}</div>` : ''}
+                            </td>
+                        </tr>`;
+                        return `<div class="fsec">
+                            <div class="fsec-title"><i class="fas fa-calendar-days"></i> Calendrier de collecte</div>
+                            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:13px">
+                                ${pill('Commune littorale','#f3e8ff','var(--purple)')}
+                                ${pill('Applicable depuis le 06/11/2026','var(--accent-light)','var(--accent)')}
+                            </div>
+                            <table style="width:100%;border-collapse:collapse">
+                                <thead>
+                                    <tr>
+                                        <th style="padding:0 10px 3px 0;text-align:left;width:30%"></th>
+                                        <th style="padding:0 8px 3px;font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#d97706;text-align:left">🌞 Haute saison</th>
+                                        <th style="padding:0 0 3px 8px;font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left">🍂 Basse saison</th>
+                                    </tr>
+                                    <tr>
+                                        <th></th>
+                                        <th style="padding:0 8px 10px;font-size:.61rem;color:#d97706;font-weight:400;text-align:left">Juil–août 2026 · Avr–oct 2027 ↗</th>
+                                        <th style="padding:0 0 10px 8px;font-size:.61rem;color:var(--muted);font-weight:400;text-align:left">Nov → Mars/Avr</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${trow('OMR', hauteOMR2026, basseOMR, '', '')}
+                                    ${(supp2026 || supp2027) ? trow('Jour supp.', supp2026 || '—', supp2027 || '—', '2026', '2027 (période élargie)') : ''}
+                                    ${hauteOMR2027 ? trow('OMR 2027', hauteOMR2027, '', 'Avr–oct élargi', '') : ''}
+                                </tbody>
+                            </table>
+                            <div style="margin-top:11px;padding-top:11px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px">
+                                <span style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);white-space:nowrap">Recyclables</span>
+                                <span style="font-size:.84rem;font-weight:700;color:var(--green)">${cap(cj.recyclables) || '—'}</span>
+                            </div>
+                        </div>`;
+                    }
+                })()}
 
                 <!-- Synthèse actions -->
                 <div class="fsec">
