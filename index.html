@@ -201,7 +201,7 @@
         .map-view { position:relative; flex:1; min-height:0; }
         #mainMap { width:100%; height:100%; min-height:400px; }
         .map-legend {
-            position:absolute; bottom:24px; right:12px; z-index:500;
+            position:absolute; top:12px; right:12px; z-index:500;
             background:#fff; border-radius:10px; padding:12px 16px;
             box-shadow:var(--shadow-md); font-size:.75rem; min-width:140px;
         }
@@ -454,6 +454,11 @@
                         <select id="pdrFilterDevenir" onchange="renderPDRTable()" style="border:1px solid #e2e8f0;border-radius:6px;padding:3px 7px;font-size:.73rem;font-family:inherit;color:#1e293b;cursor:pointer;background:#fff;">
                             <option value="">Tous statuts</option>
                         </select>
+                        <select id="pdrFilterDomaine" onchange="renderPDRTable()" style="border:1px solid #e2e8f0;border-radius:6px;padding:3px 7px;font-size:.73rem;font-family:inherit;color:#1e293b;cursor:pointer;background:#fff;">
+                            <option value="">Public &amp; Privé</option>
+                            <option value="PUBLIC">Public</option>
+                            <option value="PRIVÉ">Privé</option>
+                        </select>
                         <div style="display:flex;align-items:center;gap:4px;border:1px solid #e2e8f0;border-radius:6px;padding:3px 7px;background:#fff;">
                             <i class="fas fa-search" style="color:#94a3b8;font-size:.68rem"></i>
                             <input type="text" id="pdrSearch" placeholder="Adresse…" oninput="renderPDRTable()" style="border:none;outline:none;font-size:.73rem;font-family:inherit;width:110px;color:#1e293b;">
@@ -517,6 +522,9 @@
                         <select id="ncFilterLivrable" onchange="renderNCTable()" style="border:1px solid #e2e8f0;border-radius:6px;padding:3px 7px;font-size:.73rem;font-family:inherit;color:#1e293b;cursor:pointer;background:#fff;">
                             <option value="">Tous statuts</option>
                         </select>
+                        <select id="ncFilterType" onchange="renderNCTable()" style="border:1px solid #e2e8f0;border-radius:6px;padding:3px 7px;font-size:.73rem;font-family:inherit;color:#1e293b;cursor:pointer;background:#fff;">
+                            <option value="">Tous types</option>
+                        </select>
                         <div style="display:flex;align-items:center;gap:4px;border:1px solid #e2e8f0;border-radius:6px;padding:3px 7px;background:#fff;">
                             <i class="fas fa-search" style="color:#94a3b8;font-size:.68rem"></i>
                             <input type="text" id="ncSearch" placeholder="Adresse…" oninput="renderNCTable()" style="border:none;outline:none;font-size:.73rem;font-family:inherit;width:110px;color:#1e293b;">
@@ -554,7 +562,7 @@
                         <input type="checkbox" id="pdrToggle" checked onchange="togglePDRLayer(this.checked)" style="accent-color:#7c3aed">
                         <i class="fas fa-map-pin" style="color:#7c3aed;width:12px"></i> Afficher les points
                     </label>
-                    <button id="btnPDRPanel" onclick="togglePDRPanel(true)" style="width:100%;border:1px solid #ede9fe;border-radius:6px;padding:5px 8px;cursor:pointer;text-align:left;font-size:.72rem;font-family:inherit;background:#faf5ff;color:#7c3aed;font-weight:600"><i class="fas fa-table-list" style="width:12px"></i> Ouvrir le tableau</button>
+                    <button id="btnPDRPanel" onclick="togglePDRPanel()" style="width:100%;border:1px solid #ede9fe;border-radius:6px;padding:5px 8px;cursor:pointer;text-align:left;font-size:.72rem;font-family:inherit;background:#faf5ff;color:#7c3aed;font-weight:600"><i class="fas fa-table-list" style="width:12px"></i> Ouvrir le tableau</button>
                 </div>
                 <div id="ncToggleWrap" style="display:none;border-top:1px solid #f1f5f9;margin-top:9px;padding-top:9px;">
                     <div style="font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;font-size:.65rem;">Non conteneurisables</div>
@@ -562,7 +570,7 @@
                         <input type="checkbox" id="ncToggle" onchange="toggleNCLayer(this.checked)" style="accent-color:#b45309">
                         <i class="fas fa-ban" style="color:#b45309;width:12px"></i> Afficher les adresses (<span id="ncCount">0</span>)
                     </label>
-                    <button id="btnNCPanel" onclick="toggleNCPanel(true)" style="width:100%;border:1px solid #fde68a;border-radius:6px;padding:5px 8px;cursor:pointer;text-align:left;font-size:.72rem;font-family:inherit;background:#fffbeb;color:#b45309;font-weight:600"><i class="fas fa-table-list" style="width:12px"></i> Ouvrir le tableau</button>
+                    <button id="btnNCPanel" onclick="toggleNCPanel()" style="width:100%;border:1px solid #fde68a;border-radius:6px;padding:5px 8px;cursor:pointer;text-align:left;font-size:.72rem;font-family:inherit;background:#fffbeb;color:#b45309;font-weight:600"><i class="fas fa-table-list" style="width:12px"></i> Ouvrir le tableau</button>
                 </div>
                 <div id="equipToggleWrap" style="display:none;border-top:1px solid #f1f5f9;margin-top:9px;padding-top:9px;">
                     <div style="font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;font-size:.65rem;">Nouveaux équipements</div>
@@ -575,7 +583,7 @@
                         <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#f97316;display:inline-block;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3)"></span> Emballages &amp; papiers</div>
                         <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#059669;display:inline-block;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3)"></span> Verre</div>
                     </div>
-                    <button id="btnEquipPanel" onclick="toggleEquipPanel(true)" style="width:100%;border:1px solid #a7f3d0;border-radius:6px;padding:5px 8px;cursor:pointer;text-align:left;font-size:.72rem;font-family:inherit;background:#ecfdf5;color:#059669;font-weight:600"><i class="fas fa-table-list" style="width:12px"></i> Ouvrir le tableau</button>
+                    <button id="btnEquipPanel" onclick="toggleEquipPanel()" style="width:100%;border:1px solid #a7f3d0;border-radius:6px;padding:5px 8px;cursor:pointer;text-align:left;font-size:.72rem;font-family:inherit;background:#ecfdf5;color:#059669;font-weight:600"><i class="fas fa-table-list" style="width:12px"></i> Ouvrir le tableau</button>
                 </div>
             </div>
             <div class="map-legend" id="mapLegend" style="display:none">
@@ -1691,6 +1699,10 @@ function closeAllPanels(){
 
 // ── Afficher/masquer le panneau tableau PDR ─────────────────────────────
 function togglePDRPanel(show){
+    if(show === undefined){
+        const panel = document.getElementById('pdrPanel');
+        show = (panel.style.display !== 'flex');
+    }
     if(show) closeAllPanels();
     const panel = document.getElementById('pdrPanel');
     panel.style.display = show ? 'flex' : 'none';
@@ -1916,12 +1928,14 @@ function initPDRView(){
 function getPDRFiltered(){
     const commune  = document.getElementById('pdrFilterCommune').value;
     const devenir  = document.getElementById('pdrFilterDevenir').value;
+    const domaine  = document.getElementById('pdrFilterDomaine').value;
     const actionOnly = document.getElementById('pdrFilterAction').checked;
     const search   = (document.getElementById('pdrSearch').value||'').toLowerCase().trim();
 
     return PDR_DATA.filter(p => {
         if(commune && p.commune !== commune) return false;
         if(devenir && p.devenir !== devenir) return false;
+        if(domaine && p.domaine !== domaine) return false;
         if(actionOnly && (p.replOMR+p.replEMB+p.rajoutOMR+p.rajoutEMB) === 0) return false;
         if(search && !(p.adresse+' '+p.complement).toLowerCase().includes(search)) return false;
         return true;
@@ -2018,6 +2032,10 @@ function selectPDRFromMap(id){
 let SEL_EQUIP = null;
 
 function toggleEquipPanel(show){
+    if(show === undefined){
+        const panel = document.getElementById('equipPanel');
+        show = (panel.style.display !== 'flex');
+    }
     if(show) closeAllPanels();
     const panel = document.getElementById('equipPanel');
     panel.style.display = show ? 'flex' : 'none';
@@ -2140,6 +2158,10 @@ function selectEquipFromMap(idx){
 let SEL_NC = null;
 
 function toggleNCPanel(show){
+    if(show === undefined){
+        const panel = document.getElementById('ncPanel');
+        show = (panel.style.display !== 'flex');
+    }
     if(show) closeAllPanels();
     const panel = document.getElementById('ncPanel');
     panel.style.display = show ? 'flex' : 'none';
@@ -2154,6 +2176,7 @@ function toggleNCPanel(show){
 function initNCView(){
     const selCommune  = document.getElementById('ncFilterCommune');
     const selLivrable = document.getElementById('ncFilterLivrable');
+    const selType     = document.getElementById('ncFilterType');
 
     if(selCommune.options.length <= 1){
         [...new Set(NC_DATA.map(p=>p.commune).filter(Boolean))].sort()
@@ -2163,16 +2186,22 @@ function initNCView(){
         [...new Set(NC_DATA.map(p=>p.livrable).filter(Boolean))].sort()
             .forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; selLivrable.appendChild(o); });
     }
+    if(selType.options.length <= 1){
+        [...new Set(NC_DATA.map(p=>p.type).filter(Boolean))].sort()
+            .forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; selType.appendChild(o); });
+    }
     renderNCTable();
 }
 
 function getNCFiltered(){
     const commune  = document.getElementById('ncFilterCommune').value;
     const livrable = document.getElementById('ncFilterLivrable').value;
+    const type     = document.getElementById('ncFilterType').value;
     const search   = (document.getElementById('ncSearch').value||'').toLowerCase().trim();
     return NC_DATA.map((p,i)=>({...p,_idx:i})).filter(p=>{
         if(commune  && p.commune !== commune)   return false;
         if(livrable && p.livrable !== livrable) return false;
+        if(type     && p.type !== type)         return false;
         if(search   && !p.adresse.toLowerCase().includes(search)) return false;
         return true;
     });
