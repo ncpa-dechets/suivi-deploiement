@@ -367,6 +367,7 @@
 
         <button class="btn btn-g" id="btnAvancement" onclick="setView('avancement')" style="display:none"><i class="fas fa-chart-bar"></i> Avancement</button>
         <button class="btn btn-g" id="btnMap" onclick="setView('map')" style="display:none"><i class="fas fa-map"></i> Vue carte</button>
+        <button class="btn btn-g" id="btnFrise" onclick="setView('frise')" style="display:none"><i class="fas fa-calendar-week"></i> Calendrier collectes</button>
         <button class="btn btn-pdf" id="btnExportSingle" onclick="exportFichePDF()" style="display:none" title="Exporter la fiche de la commune sélectionnée en PDF"><i class="fas fa-file-pdf"></i> Fiche PDF</button>
         <button class="btn btn-pdf" id="btnExportAll" onclick="exportAllPDF()" style="display:none" title="Exporter toutes les communes en un seul PDF"><i class="fas fa-file-pdf"></i> Export complet</button>
     </div>
@@ -433,7 +434,8 @@
             <div id="avancementContent"></div>
         </div>
 
-        <!-- PDR VIEW — Vue tableau des Points de Regroupement -->
+        <!-- FRISE VIEW — Visualisation jours de collecte -->
+        <div id="friseView" style="display:none;padding:24px 28px 40px;overflow-y:auto;flex:1"></div>
         <!-- MAP VIEW — Vue carte territoire + panneau PDR intégré -->
         <div class="map-view" id="mapView" style="display:none;position:relative;flex:1;min-height:0;flex-direction:column;">
             <!-- Carte — occupe tout l'espace restant -->
@@ -660,40 +662,33 @@ function parse(wb){
     const r7 = rawSheet(wb, '07_JRSDECOLLECTE');
 
     // ── Parse onglet 07_JRSDECOLLECTE ──
-    // Colonnes : 0=CODE INSEE, 1=COMMUNE, 2=CAS PARTICULIER (OUI=littoral)
-    // 3=Jour OMR à partir du 06/04/2026 (communes std) ou haute saison actuelle
-    // 4=OMR haute saison 2026 (juil-août)
-    // 5=OMR basse saison 01/11/2026→01/04/2027
-    // 6=OMR haute saison 2027 (avr-oct, élargie pour littoral)
-    // 7=Jour supplémentaire actuel haute saison (littoral)
-    // 8=Jours supplémentaires haute saison à partir du 01/04/2027
-    // 9=Jour OMR basse saison principal 01/11→31/03 (littoral)
-    // 10=Jour collecte RECYCLABLES à partir du 06/04 ou 11/2026
+    // Structure : ligne 0 = titre, ligne 1 = en-têtes
+    // Colonnes : 0=CODE INSEE, 1=Commune, 2=Année, 3=Profil, 4=Flux, 5-16=Janv→Déc
     COLLECTE_MAP = {};
-    if(r7 && r7.length > 1){
-        for(let i=1; i<r7.length; i++){
+    if(r7 && r7.length > 2){
+        let lastCode = '';
+        let lastCommune = '';
+        for(let i=2; i<r7.length; i++){
             const row = r7[i];
-            const code = String(val(row,0)||'').trim();
+            // Hériter du code/commune si la cellule est vide (commune multiligne)
+            const code = String(val(row,0)||'').trim() || lastCode;
+            const commune = String(val(row,1)||'').trim() || lastCommune;
+            if(code){ lastCode = code; }
+            if(commune){ lastCommune = commune; }
             if(!code) continue;
-            // Normalise une valeur : vide si "0", "ras", "pas concernée"
-            const clean = idx => {
-                const s = String(val(row,idx)||'').trim();
-                return (s==='0' || s.toLowerCase()==='ras' || s.toLowerCase().startsWith('pas concern')) ? '' : s;
-            };
-            COLLECTE_MAP[code] = {
-                littoral:      String(val(row,2)||'').trim().toUpperCase() === 'OUI',
-                omrStandard:   clean(3),  // jour OMR annuel communes non-littorales
-                omrHaute2026:  clean(4),  // haute saison 2026 (juil-août)
-                omrBasse2627:  clean(5),  // basse saison 01/11/2026→01/04/2027
-                omrHaute2027:  clean(6),  // haute saison 2027 (avr-oct élargie)
-                suppActuel:    clean(7),  // jour supplémentaire actuel (littoral)
-                supp2027:      clean(8),  // jours supplémentaires 2027
-                omrBassePrinc: clean(9),  // jour OMR basse saison principal (littoral)
-                recyclables:   clean(10), // jour collecte recyclables
-            };
+            const annee = String(val(row,2)||'').trim();
+            const profil = String(val(row,3)||'').trim().toLowerCase(); // 'commune' | 'particuliers'
+            const flux = String(val(row,4)||'').trim().toUpperCase();    // 'OMR' | 'TRI'
+            if(!annee || !profil || !flux) continue;
+            const mois = [];
+            for(let m=5; m<=16; m++) mois.push(String(val(row,m)||'').trim());
+            if(!COLLECTE_MAP[code]) COLLECTE_MAP[code] = { commune };
+            if(!COLLECTE_MAP[code][annee]) COLLECTE_MAP[code][annee] = {};
+            const profilKey = profil.startsWith('part') ? 'particuliers' : 'commune';
+            if(!COLLECTE_MAP[code][annee][profilKey]) COLLECTE_MAP[code][annee][profilKey] = {};
+            COLLECTE_MAP[code][annee][profilKey][flux] = mois;
         }
     }
-
     // ── Parse onglet 06_Nonconteneurisables ──
     // Colonnes : 0=REFER, 1=CODE INSEE, 2=COMMUNE, 3=ADRESSE, 4=TYPE_LOGEMENT, 5=LIVRABLE, 6=LATITUDE, 7=LONGITUDE
     NC_DATA = [];
@@ -884,6 +879,8 @@ function parse(wb){
     document.getElementById('btnMap').style.display='inline-flex';
     document.getElementById('btnExportSingle').style.display='inline-flex';
     document.getElementById('btnExportAll').style.display='inline-flex';
+    if(Object.keys(COLLECTE_MAP).length > 0)
+        document.getElementById('btnFrise').style.display='inline-flex';
     setView('fiche');
 
     SEL=0;
@@ -933,6 +930,8 @@ function selectCommune(i){
     // scroll sidebar
     const btn=document.getElementById('cb'+i);
     if(btn) btn.scrollIntoView({block:'nearest',behavior:'smooth'});
+    // Mettre à jour la vue calendrier si elle est visible
+    if(VIEW==='frise') renderFriseView();
     // Mettre à jour la carte territoire si elle est visible
     if(VIEW==='map' && GEO_LAYER){
         GEO_LAYER.setStyle(themeStyle);
@@ -1393,82 +1392,6 @@ function renderFiche(){
                     </div>
                 </div>
 
-                <!-- Calendrier de collecte -->
-                ${(()=>{
-                    const cj = r.cJours;
-                    if(!cj) return '';
-                    const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
-                    const pill = (txt, bg, col) => `<span style="display:inline-block;padding:2px 9px;border-radius:20px;font-size:.72rem;font-weight:700;background:${bg};color:${col}">${txt}</span>`;
-
-                    if(!cj.littoral){
-                        // ── Commune non-littorale : affichage compact ──
-                        return `<div class="fsec">
-                            <div class="fsec-title"><i class="fas fa-calendar-days"></i> Calendrier de collecte</div>
-                            <div style="margin-bottom:10px">${pill('Applicable depuis le 06/04/2026','var(--accent-light)','var(--accent)')}</div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                                <div style="background:var(--bg);border-radius:9px;padding:10px 13px;border:1px solid var(--border)">
-                                    <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:5px">OMR</div>
-                                    <div style="font-size:.9rem;font-weight:700;color:var(--text)">${cap(cj.omrStandard)||'—'}</div>
-                                    <div style="font-size:.68rem;color:var(--muted);margin-top:2px">Toute l'année</div>
-                                </div>
-                                <div style="background:var(--bg);border-radius:9px;padding:10px 13px;border:1px solid var(--border)">
-                                    <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:5px">Recyclables</div>
-                                    <div style="font-size:.9rem;font-weight:700;color:var(--green)">${cap(cj.recyclables)||'—'}</div>
-                                    <div style="font-size:.68rem;color:var(--muted);margin-top:2px">Toute l'année</div>
-                                </div>
-                            </div>
-                        </div>`;
-                    } else {
-                        // ── Commune littorale : affichage saisonnier 2 ans ──
-                        const hauteOMR2026 = cap(cj.omrHaute2026 || cj.omrStandard);
-                        const hauteOMR2027 = cap(cj.omrHaute2027);
-                        const basseOMR     = cap(cj.omrBassePrinc || cj.omrBasse2627);
-                        const supp2026     = cap(cj.suppActuel);
-                        const supp2027     = cap(cj.supp2027);
-                        const trow = (label, vHaute, vBasse, subHaute, subBasse) => `<tr>
-                            <td style="padding:8px 10px 8px 0;font-size:.72rem;color:var(--muted);font-weight:600;white-space:nowrap;border-bottom:1px solid var(--border);vertical-align:top">${label}</td>
-                            <td style="padding:8px 8px;font-size:.8rem;font-weight:700;color:var(--text);border-bottom:1px solid var(--border);vertical-align:top">
-                                ${vHaute || '<span style="color:var(--muted);font-weight:400">—</span>'}
-                                ${subHaute ? `<div style="font-size:.63rem;color:var(--muted);font-weight:400;margin-top:2px">${subHaute}</div>` : ''}
-                            </td>
-                            <td style="padding:8px 0 8px 8px;font-size:.8rem;font-weight:700;color:var(--text);border-bottom:1px solid var(--border);vertical-align:top">
-                                ${vBasse || '<span style="color:var(--muted);font-weight:400">—</span>'}
-                                ${subBasse ? `<div style="font-size:.63rem;color:var(--muted);font-weight:400;margin-top:2px">${subBasse}</div>` : ''}
-                            </td>
-                        </tr>`;
-                        return `<div class="fsec">
-                            <div class="fsec-title"><i class="fas fa-calendar-days"></i> Calendrier de collecte</div>
-                            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:13px">
-                                ${pill('Commune littorale','#f3e8ff','var(--purple)')}
-                                ${pill('Applicable depuis le 06/11/2026','var(--accent-light)','var(--accent)')}
-                            </div>
-                            <table style="width:100%;border-collapse:collapse">
-                                <thead>
-                                    <tr>
-                                        <th style="padding:0 10px 3px 0;text-align:left;width:30%"></th>
-                                        <th style="padding:0 8px 3px;font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#d97706;text-align:left">🌞 Haute saison</th>
-                                        <th style="padding:0 0 3px 8px;font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left">🍂 Basse saison</th>
-                                    </tr>
-                                    <tr>
-                                        <th></th>
-                                        <th style="padding:0 8px 10px;font-size:.61rem;color:#d97706;font-weight:400;text-align:left">Juil–août 2026 · Avr–oct 2027 ↗</th>
-                                        <th style="padding:0 0 10px 8px;font-size:.61rem;color:var(--muted);font-weight:400;text-align:left">Nov → Mars/Avr</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${trow('OMR', hauteOMR2026, basseOMR, '', '')}
-                                    ${(supp2026 || supp2027) ? trow('Jour supp.', supp2026 || '—', supp2027 || '—', '2026', '2027 (période élargie)') : ''}
-                                    ${hauteOMR2027 ? trow('OMR 2027', hauteOMR2027, '', 'Avr–oct élargi', '') : ''}
-                                </tbody>
-                            </table>
-                            <div style="margin-top:11px;padding-top:11px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px">
-                                <span style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);white-space:nowrap">Recyclables</span>
-                                <span style="font-size:.84rem;font-weight:700;color:var(--green)">${cap(cj.recyclables) || '—'}</span>
-                            </div>
-                        </div>`;
-                    }
-                })()}
-
                 <!-- Synthèse actions -->
                 <div class="fsec">
                     <div class="fsec-title"><i class="fas fa-flag"></i> Synthèse des actions</div>
@@ -1476,7 +1399,6 @@ function renderFiche(){
                         ${actions.map(a=>`<div class="action-item ${a.cls}"><i class="fas ${a.icon}"></i>${a.txt}</div>`).join('')}
                     </div>
                 </div>
-
                 <!-- Contacts -->
                 <div class="fsec">
                     <div class="fsec-title"><i class="fas fa-address-book"></i> Contacts</div>
@@ -1610,7 +1532,7 @@ function doSort(i){
 // ═══════════════════════════════════════
 // TOGGLE VIEW
 // ═══════════════════════════════════════
-// Gestion des 3 vues : fiche / table / map
+// Gestion des vues : fiche / avancement / map / frise
 function setView(v){
     VIEW=v;
     const main = document.getElementById('mainArea');
@@ -1619,11 +1541,12 @@ function setView(v){
     // Cacher tout
     document.getElementById('ficheView').classList.add('hide');
     document.getElementById('avancementView').style.display = 'none';
+    document.getElementById('friseView').style.display = 'none';
     mapEl.style.display = 'none';
     main.classList.remove('map-mode');
 
     // Surbrillance bouton actif
-    ['btnFiche','btnAvancement','btnMap'].forEach(id=>{
+    ['btnFiche','btnAvancement','btnMap','btnFrise'].forEach(id=>{
         const b=document.getElementById(id);
         if(b){ b.style.background='rgba(255,255,255,.15)'; }
     });
@@ -1643,6 +1566,10 @@ function setView(v){
         mapEl.style.display = 'flex';
         const b=document.getElementById('btnMap'); if(b) b.style.background='rgba(255,255,255,.35)';
         initMainMap();
+    } else if(v==='frise'){
+        document.getElementById('friseView').style.display = 'block';
+        const b=document.getElementById('btnFrise'); if(b) b.style.background='rgba(255,255,255,.35)';
+        renderFriseView();
     }
 }
 function toggleView(){ setView(VIEW==='fiche'?'table':'fiche'); }
@@ -2410,7 +2337,7 @@ function renderAvancement(){
     // Classement par zone
     const zones = [
         {label:'Littorale',  color:'var(--pink)',   icon:'fa-umbrella-beach', note:'% rés. sec. élevé — collecte spécifique'},
-        {label:'Périurbaine',color:'var(--accent)',  icon:'fa-city',           note:'Zone à fort potentiel de dotation'},
+        {label:'Périurbaine',color:'var(--accent)',  icon:'fa-city',           note:'Zone à fort potentiel de dotation'},,
         {label:'Rurale',     color:'var(--green)',   icon:'fa-tree',           note:'Collecte en régie — maillage PDR'},
     ];
 
@@ -2877,6 +2804,209 @@ async function exportAllPDF(){
         progBar.style.width = '0%';
     }
 }
+// ═══════════════════════════════════════
+// CALENDRIER COLLECTES — Vue dédiée
+// ═══════════════════════════════════════
+
+// Palette de couleurs selon fréquence et flux
+function friseColor(rawCode, flux){
+    const code = String(rawCode || '').replace('C','').replace(',','.').trim();
+    const n = parseFloat(code);
+    if(isNaN(n)) return { bg:'var(--border)', fg:'var(--muted)', border:'var(--border)' };
+    if(flux === 'OMR'){
+        if(n <= 0.5) return { bg:'#dbeafe', fg:'#1e40af', border:'#93c5fd' };
+        if(n <= 1)   return { bg:'#93c5fd', fg:'#1e3a8a', border:'#3b82f6' };
+        if(n <= 2)   return { bg:'#3b82f6', fg:'#ffffff', border:'#1d4ed8' };
+        if(n <= 3)   return { bg:'#1d4ed8', fg:'#ffffff', border:'#1e40af' };
+        if(n <= 4)   return { bg:'#1e3a8a', fg:'#ffffff', border:'#1e3a8a' };
+                     return { bg:'#172554', fg:'#ffffff', border:'#172554' };
+    } else {
+        if(n <= 0.5) return { bg:'#dcfce7', fg:'#15803d', border:'#86efac' };
+        if(n <= 1)   return { bg:'#86efac', fg:'#14532d', border:'#4ade80' };
+        if(n <= 2)   return { bg:'#22c55e', fg:'#ffffff', border:'#16a34a' };
+        if(n <= 3)   return { bg:'#16a34a', fg:'#ffffff', border:'#15803d' };
+                     return { bg:'#14532d', fg:'#ffffff', border:'#14532d' };
+    }
+}
+
+function parseFreqCode(raw){
+    const s = String(raw || '').trim();
+    if(!s) return { code:'', jours:'', num:0 };
+    const parts = s.split(' ');
+    const code  = parts[0].toUpperCase();
+    const jours = parts.slice(1).join(' ');
+    const num   = parseFloat(code.replace('C','').replace(',','.')) || 0;
+    return { code, jours, num };
+}
+
+// Regroupe les mois consécutifs identiques → array of {raw, code, jours, start, span}
+function buildGroups(moisArr){
+    const groups = [];
+    for(let i = 0; i < 12; i++){
+        const raw = (moisArr && moisArr[i]) ? moisArr[i].trim() : '';
+        const { code, jours } = parseFreqCode(raw);
+        const last = groups[groups.length - 1];
+        if(last && last.raw === raw){ last.span++; }
+        else { groups.push({ raw, code, jours, start: i, span: 1 }); }
+    }
+    return groups;
+}
+
+function renderFriseView(){
+    const el = document.getElementById('friseView');
+    if(!el) return;
+
+    const r = D[SEL];
+    if(!r || !r.cJours || !Object.keys(r.cJours).some(k => k !== 'commune')){
+        el.innerHTML = `<div style="text-align:center;color:var(--muted);padding:60px 20px">
+            <i class="fas fa-calendar-xmark" style="font-size:2.5rem;display:block;margin-bottom:14px;opacity:.4"></i>
+            <strong>Aucune donnée de collecte pour ${r ? r.nom : 'cette commune'}</strong><br>
+            <span style="font-size:.82rem">Vérifiez que l\'onglet <code>07_JRSDECOLLECTE</code> contient cette commune.</span>
+        </div>`;
+        return;
+    }
+
+    const annees = Object.keys(r.cJours).filter(k => k !== 'commune').sort();
+
+    el.innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+            <h2 style="font-size:1.25rem;font-weight:700;color:var(--text)">
+                <i class="fas fa-calendar-week" style="color:var(--accent);margin-right:8px"></i>${r.nom}
+            </h2>
+            <span style="font-size:.78rem;color:var(--muted)">${r.zone || ''} · ${annees.join(' & ')}</span>
+        </div>
+        <div id="friseLegende"></div>
+        <div id="friseContent"></div>
+    `;
+
+    document.getElementById('friseLegende').innerHTML = renderLegende();
+    document.getElementById('friseContent').innerHTML = annees.map(a => renderFriseAnnee(a, [r])).join('');
+}
+
+
+// ── Légende fréquences ───────────────────────────────────────────────
+function renderLegende(){
+    const MOIS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+    const items = [
+        { code:'C0.5', label:'1×/2 sem.' },
+        { code:'C1',   label:'1×/sem.'   },
+        { code:'C2',   label:'2×/sem.'   },
+        { code:'C3',   label:'3×/sem.'   },
+        { code:'C4+',  label:'4×/sem. et +'  },
+    ];
+    const fluxes = [{ key:'OMR', label:'OMR (déchets résiduels)' }, { key:'TRI', label:'TRI (recyclables)' }];
+    let html = `<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start;padding:14px 18px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:22px">
+        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);align-self:center;white-space:nowrap">Fréquences :</div>`;
+    fluxes.forEach(f => {
+        html += `<div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:.68rem;font-weight:700;color:var(--muted);white-space:nowrap">${f.label}</span>`;
+        items.forEach(it => {
+            const c = friseColor(it.code, f.key);
+            html += `<div title="${it.code} = ${it.label}" style="display:flex;flex-direction:column;align-items:center;gap:2px;cursor:default">
+                <div style="width:38px;height:24px;background:${c.bg};border:1.5px solid ${c.border};border-radius:5px;display:flex;align-items:center;justify-content:center">
+                    <span style="font-size:.62rem;font-weight:800;color:${c.fg}">${it.code}</span>
+                </div>
+                <span style="font-size:.52rem;color:var(--muted);line-height:1">${it.label}</span>
+            </div>`;
+        });
+        html += `</div>`;
+    });
+    html += `</div>`;
+    return html;
+}
+
+// ── Tableau frise pour une année (liste filtrée passée en param) ──────
+function renderFriseAnnee(annee, communesListe){
+    const MOIS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+
+    let thead = `<thead><tr style="position:sticky;top:0;z-index:3;background:var(--card)">
+        <th style="padding:8px 14px;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);border-bottom:2px solid var(--border);min-width:180px;background:var(--card);position:sticky;left:0;z-index:4">Commune</th>
+        <th style="padding:6px 2px;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);border-bottom:2px solid var(--border);width:32px;min-width:32px;text-align:center;background:var(--card)">Flux</th>`;
+    MOIS.forEach(m => {
+        thead += `<th style="padding:6px 1px;font-size:.6rem;font-weight:600;color:var(--muted);border-bottom:2px solid var(--border);text-align:center;min-width:44px;background:var(--card)">${m}</th>`;
+    });
+    thead += `</tr></thead>`;
+
+    let tbody = '<tbody>';
+    communesListe.forEach((r, ci) => {
+        const cj = r.cJours;
+        const ad = cj && cj[annee];
+        if(!ad) return;
+
+        const rowBg = ci % 2 === 0 ? '#f8fafc' : '#ffffff';
+        const profils = [
+            { key:'commune',      label:null,          bg: rowBg    },
+            { key:'particuliers', label:'Voies part.',  bg:'#faf5ff' },
+        ];
+        const fluxOrder = ['OMR','TRI'];
+
+        let totalRows = 0;
+        profils.forEach(p => {
+            if(!ad[p.key]) return;
+            fluxOrder.forEach(fl => {
+                if(ad[p.key][fl] && ad[p.key][fl].some(v => v)) totalRows++;
+            });
+        });
+        if(totalRows === 0) return;
+
+        let firstRowOfCommune = true;
+        profils.forEach(p => {
+            if(!ad[p.key]) return;
+            fluxOrder.forEach(fl => {
+                const moisArr = ad[p.key][fl];
+                if(!moisArr || !moisArr.some(v => v)) return;
+
+                const groups = buildGroups(moisArr);
+                const fluxBadgeBg = fl === 'OMR' ? '#dbeafe' : '#dcfce7';
+                const fluxBadgeFg = fl === 'OMR' ? '#1e40af' : '#15803d';
+
+                tbody += `<tr style="background:${p.bg}">`;
+                if(firstRowOfCommune){
+                    tbody += `<td rowspan="${totalRows}" style="padding:8px 14px;border-bottom:2px solid var(--border);vertical-align:top;position:sticky;left:0;background:${rowBg};z-index:1">
+                        <div style="font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:3px">${r.nom}</div>
+                        <div style="font-size:.65rem;color:var(--muted)">${r.zone||''}</div>
+                    </td>`;
+                    firstRowOfCommune = false;
+                }
+                tbody += `<td style="padding:4px 6px;border-bottom:1px solid var(--border);text-align:center;white-space:nowrap">
+                    ${p.key === 'particuliers' && fl === 'OMR' ? `<div style="font-size:.55rem;font-weight:700;color:#7c3aed;margin-bottom:2px;white-space:nowrap">Voies part.</div>` : ''}
+                    <span style="display:inline-block;padding:2px 5px;border-radius:8px;font-size:.6rem;font-weight:800;background:${fluxBadgeBg};color:${fluxBadgeFg}">${fl}</span>
+                </td>`;
+                groups.forEach(g => {
+                    const borderStyle = '1px solid var(--border)';
+                    if(!g.raw){
+                        tbody += `<td colspan="${g.span}" style="padding:3px 2px;border-bottom:${borderStyle}"></td>`;
+                    } else {
+                        const c = friseColor(g.code, fl);
+                        const rangeLabel = g.span > 1 ? `${MOIS[g.start]}–${MOIS[g.start+g.span-1]}` : MOIS[g.start];
+                        const tooltip = `${rangeLabel} : ${g.raw}`;
+                        tbody += `<td colspan="${g.span}" style="padding:3px 2px;border-bottom:${borderStyle}">
+                            <div title="${tooltip}" style="background:${c.bg};border:1.5px solid ${c.border};border-radius:5px;height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:default;padding:0 2px;overflow:hidden">
+                                <span style="font-size:.65rem;font-weight:800;color:${c.fg};line-height:1;white-space:nowrap">${g.code}</span>
+                                ${g.jours ? `<span style="font-size:.52rem;color:${c.fg};opacity:.85;line-height:1;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis">${g.jours}</span>` : ''}
+                            </div>
+                        </td>`;
+                    }
+                });
+                tbody += `</tr>`;
+            });
+        });
+        tbody += `<tr><td colspan="14" style="height:4px;padding:0;border-bottom:2px solid var(--border)"></td></tr>`;
+    });
+    tbody += '</tbody>';
+
+    const nbCommunes = communesListe.filter(r => r.cJours && r.cJours[annee]).length;
+    return `<div style="margin-bottom:32px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+            <span style="background:var(--accent);color:#fff;padding:5px 18px;border-radius:20px;font-size:.9rem;font-weight:700;letter-spacing:.01em">${annee}</span>
+            <span style="font-size:.78rem;color:var(--muted)">${nbCommunes} commune${nbCommunes>1?'s':''}</span>
+        </div>
+        <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)">
+            <table style="width:100%;border-collapse:collapse;background:var(--card);min-width:760px">
+                ${thead}${tbody}
+            </table>
+        </div>
+    </div>`;
+}
+
 </script>
-</body>
-</html>
