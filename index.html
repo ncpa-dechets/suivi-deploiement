@@ -1105,18 +1105,34 @@ function renderFiche(){
             </div>
         </div>
 
-        <!-- DONUT RÉPARTITION TYPES D'ADRESSES -->
-        <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:24px">
-            <div style="width:130px;height:130px;flex-shrink:0">
-                <canvas id="addrDonutChart" width="130" height="130"></canvas>
+        <!-- DONUTS RÉPARTITION ADRESSES -->
+        <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:20px;display:grid;grid-template-columns:1fr 1fr;gap:24px">
+            <!-- Donut 1 : types d'adresses -->
+            <div style="display:flex;align-items:center;gap:18px">
+                <div style="width:120px;height:120px;flex-shrink:0">
+                    <canvas id="addrDonutChart" width="120" height="120"></canvas>
+                </div>
+                <div>
+                    <div style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Types d'adresses</div>
+                    <div style="display:flex;flex-direction:column;gap:5px;font-size:.8rem">
+                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#3b82f6;margin-right:5px"></span>Particuliers : <strong>${f(r.addrParticuliers)}</strong></span>
+                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#8b5cf6;margin-right:5px"></span>Professionnels : <strong>${f(r.addrPros)}</strong></span>
+                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;margin-right:5px"></span>Collectifs : <strong>${f(r.addrCollectif)}</strong></span>
+                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#64748b;margin-right:5px"></span>Autres : <strong>${f(r.addrAutres)}</strong></span>
+                    </div>
+                </div>
             </div>
-            <div>
-                <div style="font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Répartition des ${f(r.addrTotal)} adresses</div>
-                <div style="display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.8rem">
-                    <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#3b82f6;margin-right:4px"></span>Particuliers : <strong>${f(r.addrParticuliers)}</strong></span>
-                    <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#8b5cf6;margin-right:4px"></span>Professionnels : <strong>${f(r.addrPros)}</strong></span>
-                    <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;margin-right:4px"></span>Collectifs : <strong>${f(r.addrCollectif)}</strong></span>
-                    <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#64748b;margin-right:4px"></span>Autres : <strong>${f(r.addrAutres)}</strong></span>
+            <!-- Donut 2 : conteneurisables / non conteneurisables -->
+            <div style="display:flex;align-items:center;gap:18px">
+                <div style="width:120px;height:120px;flex-shrink:0">
+                    <canvas id="contDonutChart" width="120" height="120"></canvas>
+                </div>
+                <div>
+                    <div style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Conteneurisation</div>
+                    <div style="display:flex;flex-direction:column;gap:5px;font-size:.8rem">
+                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#2563eb;margin-right:5px"></span>Conteneurisables : <strong>${f(r.addrCont)}</strong> <span style="color:var(--muted);font-size:.75rem">(${fmtPct(Math.round(100-pctNonDisp))}%)</span></span>
+                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;margin-right:5px"></span>Non conteneurisables : <strong>${f(r.addrNon)}</strong> <span style="color:var(--muted);font-size:.75rem">(${fmtPct(pctNonDisp)}%)</span></span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1129,23 +1145,6 @@ function renderFiche(){
                 <!-- Infrastructure -->
                 <div class="fsec">
                     <div class="fsec-title"><i class="fas fa-trash-alt"></i> Infrastructure collecte &amp; équipements</div>
-
-                    <!-- GROUPE : Dotation en bacs individuels -->
-                    <div class="infra-group">
-                        <div class="infra-group-title">Dotation en bacs individuels</div>
-                        <div class="infra-grid" style="grid-template-columns:1fr 1fr">
-                            <div class="infra-box" style="background:#dbeafe;color:#1e3a8a;border-color:#93c5fd">
-                                <div class="ib-label">Adresses conteneurisables</div>
-                                <div class="ib-val">${f(r.addrCont)}</div>
-                                <div class="ib-sub">${fmtPct(Math.round(100-pctNonDisp))}% des adresses</div>
-                            </div>
-                            <div class="infra-box" style="background:#fecaca;color:#7f1d1d;border-color:#f87171">
-                                <div class="ib-label">Adresses non conteneurisables</div>
-                                <div class="ib-val">${f(r.addrNon)}</div>
-                                <div class="ib-sub">${fmtPct(pctNonDisp)}% — collecte via PDR</div>
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- GROUPE : Points de regroupement -->
                     <div class="infra-group">
@@ -1456,6 +1455,33 @@ function renderFiche(){
                 maintainAspectRatio: true,
                 plugins: { legend: { display: false }, tooltip: {
                     callbacks: { label: ctx => ctx.label + ' : ' + ctx.parsed + ' (' + Math.round(ctx.parsed/r.addrTotal*100) + '%)' }
+                }}
+            }
+        });
+    }
+
+    // Donut conteneurisables / non conteneurisables
+    const contCanvas = document.getElementById('contDonutChart');
+    if(contCanvas){
+        if(window._contDonutChart) window._contDonutChart.destroy();
+        const totalAddr = r.addrCont + r.addrNon;
+        window._contDonutChart = new Chart(contCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: ['Conteneurisables','Non conteneurisables'],
+                datasets: [{
+                    data: [r.addrCont, r.addrNon],
+                    backgroundColor: ['#2563eb','#ef4444'],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                cutout: '62%',
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { display: false }, tooltip: {
+                    callbacks: { label: ctx => ctx.label + ' : ' + ctx.parsed + ' (' + (totalAddr>0 ? Math.round(ctx.parsed/totalAddr*100) : 0) + '%)' }
                 }}
             }
         });
