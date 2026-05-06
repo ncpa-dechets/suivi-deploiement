@@ -2716,6 +2716,188 @@ function buildFichePDFHTML(r){
     ];
 }
 
+// ── Génère le HTML de la page 3 (calendrier collectes) pour le PDF ──
+function buildFrisePDFHTML(r){
+    if(!r || !r.cJours || !Object.keys(r.cJours).some(k => k !== 'commune')) return null;
+
+    const MOIS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+    const annees = Object.keys(r.cJours).filter(k => k !== 'commune').sort();
+
+    // Palette couleurs PDF (identique à friseColor mais sans CSS vars)
+    function pdfColor(rawCode, flux){
+        const code = String(rawCode||'').replace('C','').replace(',','.').trim();
+        const n = parseFloat(code);
+        if(isNaN(n)) return { bg:'#e2e8f0', fg:'#94a3b8', border:'#e2e8f0' };
+        if(flux === 'OMR'){
+            if(n<=0.5) return { bg:'#e5e7eb', fg:'#374151', border:'#d1d5db' };
+            if(n<=1)   return { bg:'#d1d5db', fg:'#1f2937', border:'#9ca3af' };
+            if(n<=2)   return { bg:'#9ca3af', fg:'#ffffff', border:'#6b7280' };
+            if(n<=3)   return { bg:'#6b7280', fg:'#ffffff', border:'#4b5563' };
+            if(n<=4)   return { bg:'#374151', fg:'#ffffff', border:'#1f2937' };
+                       return { bg:'#111827', fg:'#ffffff', border:'#111827' };
+        } else {
+            if(n<=0.5) return { bg:'#fef9c3', fg:'#92400e', border:'#fde68a' };
+            if(n<=1)   return { bg:'#fde68a', fg:'#78350f', border:'#fbbf24' };
+            if(n<=2)   return { bg:'#f59e0b', fg:'#ffffff', border:'#d97706' };
+            if(n<=3)   return { bg:'#d97706', fg:'#ffffff', border:'#b45309' };
+                       return { bg:'#92400e', fg:'#ffffff', border:'#78350f' };
+        }
+    }
+
+    // Regroupe les mois consécutifs identiques (même logique que buildGroups)
+    function grp(moisArr){
+        const groups = [];
+        for(let i=0;i<12;i++){
+            const raw = (moisArr && moisArr[i]) ? moisArr[i].trim() : '';
+            const parts = raw.split(' ');
+            const code = parts[0] ? parts[0].toUpperCase() : '';
+            const jours = parts.slice(1).join(' ');
+            const last = groups[groups.length-1];
+            if(last && last.raw === raw){ last.span++; }
+            else { groups.push({ raw, code, jours, start:i, span:1 }); }
+        }
+        return groups;
+    }
+
+    // Légende compacte pour le PDF
+    const legendeItems = [
+        { code:'C0.5', label:'1×/2 sem.' },
+        { code:'C1',   label:'1×/sem.' },
+        { code:'C2',   label:'2×/sem.' },
+        { code:'C3',   label:'3×/sem.' },
+        { code:'C4+',  label:'4×/sem.+' },
+    ];
+    const legendeFluxes = [
+        { key:'OMR', label:'OMR (résiduels)' },
+        { key:'TRI', label:'TRI (recyclables)' }
+    ];
+    let legendeHTML = `<div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:16px">
+        <div style="font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8">Fréquences :</div>`;
+    legendeFluxes.forEach(fl => {
+        legendeHTML += `<div style="display:flex;align-items:center;gap:4px">
+            <span style="font-size:.58rem;font-weight:700;color:#64748b">${fl.label}</span>`;
+        legendeItems.forEach(it => {
+            const c = pdfColor(it.code, fl.key);
+            legendeHTML += `<div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+                <div style="width:30px;height:18px;background:${c.bg};border:1px solid ${c.border};border-radius:4px;display:flex;align-items:center;justify-content:center">
+                    <span style="font-size:.5rem;font-weight:800;color:${c.fg}">${it.code}</span>
+                </div>
+                <span style="font-size:.42rem;color:#94a3b8;line-height:1">${it.label}</span>
+            </div>`;
+        });
+        legendeHTML += `</div>`;
+    });
+    legendeHTML += `</div>`;
+
+    // Génère un tableau frise pour une année donnée
+    function buildAnneeTable(annee){
+        const ad = r.cJours[annee];
+        if(!ad) return '';
+
+        // En-têtes mois avec bordures verticales
+        let thead = `<thead><tr style="background:#f8fafc">
+            <th style="padding:5px 8px;text-align:left;font-size:.55rem;font-weight:700;text-transform:uppercase;color:#94a3b8;border-bottom:2px solid #e2e8f0;min-width:50px">Profil</th>
+            <th style="padding:4px 2px;font-size:.52rem;font-weight:700;text-transform:uppercase;color:#94a3b8;border-bottom:2px solid #e2e8f0;width:28px;text-align:center">Flux</th>`;
+        MOIS.forEach((m,mi) => {
+            const bl = mi > 0 ? 'border-left:1px solid #e2e8f0;' : '';
+            thead += `<th style="padding:4px 1px;font-size:.55rem;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0;text-align:center;${bl}">${m}</th>`;
+        });
+        thead += `</tr></thead>`;
+
+        const profils = [
+            { key:'commune',      label:'Commune' },
+            { key:'particuliers', label:'Voies part.' },
+        ];
+        const fluxOrder = ['OMR','TRI'];
+
+        let tbody = '<tbody>';
+        profils.forEach(p => {
+            if(!ad[p.key]) return;
+            let firstOfProfil = true;
+            let profilRows = 0;
+            fluxOrder.forEach(fl => { if(ad[p.key][fl] && ad[p.key][fl].some(v=>v)) profilRows++; });
+            if(profilRows === 0) return;
+
+            fluxOrder.forEach(fl => {
+                const moisArr = ad[p.key][fl];
+                if(!moisArr || !moisArr.some(v=>v)) return;
+                const groups = grp(moisArr);
+                const flBg = fl === 'OMR' ? '#e5e7eb' : '#fef9c3';
+                const flFg = fl === 'OMR' ? '#374151' : '#92400e';
+
+                tbody += `<tr>`;
+                if(firstOfProfil){
+                    const bgP = p.key === 'particuliers' ? '#faf5ff' : '#ffffff';
+                    tbody += `<td rowspan="${profilRows}" style="padding:5px 8px;border-bottom:1.5px solid #e2e8f0;vertical-align:middle;font-size:.6rem;font-weight:700;color:#334155;background:${bgP}">${p.label}</td>`;
+                    firstOfProfil = false;
+                }
+                tbody += `<td style="padding:3px 4px;border-bottom:1px solid #e2e8f0;text-align:center">
+                    <span style="display:inline-block;padding:1px 4px;border-radius:6px;font-size:.5rem;font-weight:800;background:${flBg};color:${flFg}">${fl}</span>
+                </td>`;
+
+                let moisIdx = 0;
+                groups.forEach(g => {
+                    const bl = moisIdx > 0 ? 'border-left:1px solid #e2e8f0;' : '';
+                    if(!g.raw){
+                        tbody += `<td colspan="${g.span}" style="padding:2px 1px;border-bottom:1px solid #e2e8f0;${bl}"></td>`;
+                    } else {
+                        const c = pdfColor(g.code, fl);
+                        tbody += `<td colspan="${g.span}" style="padding:2px 1px;border-bottom:1px solid #e2e8f0;${bl}">
+                            <div style="background:${c.bg};border:1px solid ${c.border};border-radius:4px;height:32px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0px;padding:0 1px;overflow:hidden">
+                                <span style="font-size:.58rem;font-weight:800;color:${c.fg};line-height:1">${g.code}</span>
+                                ${g.jours ? `<span style="font-size:.5rem;color:${c.fg};opacity:.85;line-height:1;white-space:nowrap">${g.jours}</span>` : ''}
+                            </div>
+                        </td>`;
+                    }
+                    moisIdx += g.span;
+                });
+                tbody += `</tr>`;
+            });
+        });
+        tbody += '</tbody>';
+
+        return `<div style="margin-bottom:14px">
+            <div style="margin-bottom:6px">
+                <span style="background:#1e40af;color:#fff;padding:3px 12px;border-radius:14px;font-size:.72rem;font-weight:700">${annee}</span>
+            </div>
+            <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden">
+                ${thead}${tbody}
+            </table>
+        </div>`;
+    }
+
+    const wrapper = `width:794px;background:#fff;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#1e293b;box-sizing:border-box;padding:26px`;
+    const html = `<div style="${wrapper}">
+        <!-- EN-TÊTE -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #1e40af">
+            <div style="font-size:1rem;font-weight:700;color:#1e40af">${r.nom}</div>
+            <div style="font-size:.6rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em">Calendrier des collectes — page 3</div>
+        </div>
+
+        <!-- TITRE SECTION -->
+        <div style="margin-bottom:14px">
+            <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;
+                        border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:10px">Calendrier des jours de collecte</div>
+        </div>
+
+        <!-- LÉGENDE -->
+        ${legendeHTML}
+
+        <!-- FRISES PAR ANNÉE -->
+        ${annees.map(a => buildAnneeTable(a)).join('')}
+
+        <!-- PIED DE PAGE -->
+        <div style="margin-top:20px;padding-top:10px;border-top:1px solid #e2e8f0;
+                    display:flex;justify-content:space-between;font-size:.58rem;color:#94a3b8">
+            <span>NCPA — Normandie Cabourg Pays d'Auge — Déploiement Équipements</span>
+            <span>Exporté le ${new Date().toLocaleDateString('fr-FR')}</span>
+        </div>
+    </div>`;
+
+    return html;
+}
+
+
 // Capture une page HTML en canvas via html2canvas
 async function capturePageHTML(html){
     const container = document.getElementById('pdfContainer');
@@ -2733,12 +2915,20 @@ async function capturePageHTML(html){
     return canvas;
 }
 
-// Capture les deux pages d'une fiche, retourne [canvas1, canvas2]
+// Capture les pages d'une fiche (2 ou 3 si calendrier dispo), retourne un tableau de canvas
 async function captureFichePDF(r){
     const pages = buildFichePDFHTML(r);
     const c1 = await capturePageHTML(pages[0]);
     const c2 = await capturePageHTML(pages[1]);
-    return [c1, c2];
+    const result = [c1, c2];
+
+    // Page 3 : calendrier collectes (si données disponibles)
+    const frisePage = buildFrisePDFHTML(r);
+    if(frisePage){
+        const c3 = await capturePageHTML(frisePage);
+        result.push(c3);
+    }
+    return result;
 }
 
 // Ajoute un canvas au document jsPDF en le faisant tenir sur une page A4
@@ -2766,9 +2956,10 @@ async function exportFichePDF(){
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
         const canvases = await captureFichePDF(r);
-        addCanvasToDoc(doc, canvases[0]);
-        doc.addPage();
-        addCanvasToDoc(doc, canvases[1]);
+        canvases.forEach((cv, idx) => {
+            if(idx > 0) doc.addPage();
+            addCanvasToDoc(doc, cv);
+        });
         const nom = r.nom.replace(/[^a-zA-Z0-9]/g,'_');
         doc.save(`Fiche_${nom}_NCPA.pdf`);
     } finally {
@@ -2792,9 +2983,10 @@ async function exportAllPDF(){
             progBar.style.width  = `${Math.round((i+1)/D.length*100)}%`;
             const canvases = await captureFichePDF(D[i]);
             if(i > 0) doc.addPage();
-            addCanvasToDoc(doc, canvases[0]);
-            doc.addPage();
-            addCanvasToDoc(doc, canvases[1]);
+            canvases.forEach((cv, idx) => {
+                if(idx > 0) doc.addPage();
+                addCanvasToDoc(doc, cv);
+            });
             await new Promise(res => setTimeout(res, 30));
         }
         const date = new Date().toISOString().slice(0,10);
@@ -2814,18 +3006,18 @@ function friseColor(rawCode, flux){
     const n = parseFloat(code);
     if(isNaN(n)) return { bg:'var(--border)', fg:'var(--muted)', border:'var(--border)' };
     if(flux === 'OMR'){
-        if(n <= 0.5) return { bg:'#dbeafe', fg:'#1e40af', border:'#93c5fd' };
-        if(n <= 1)   return { bg:'#93c5fd', fg:'#1e3a8a', border:'#3b82f6' };
-        if(n <= 2)   return { bg:'#3b82f6', fg:'#ffffff', border:'#1d4ed8' };
-        if(n <= 3)   return { bg:'#1d4ed8', fg:'#ffffff', border:'#1e40af' };
-        if(n <= 4)   return { bg:'#1e3a8a', fg:'#ffffff', border:'#1e3a8a' };
-                     return { bg:'#172554', fg:'#ffffff', border:'#172554' };
+        if(n <= 0.5) return { bg:'#e5e7eb', fg:'#374151', border:'#d1d5db' };
+        if(n <= 1)   return { bg:'#d1d5db', fg:'#1f2937', border:'#9ca3af' };
+        if(n <= 2)   return { bg:'#9ca3af', fg:'#ffffff', border:'#6b7280' };
+        if(n <= 3)   return { bg:'#6b7280', fg:'#ffffff', border:'#4b5563' };
+        if(n <= 4)   return { bg:'#374151', fg:'#ffffff', border:'#1f2937' };
+                     return { bg:'#111827', fg:'#ffffff', border:'#111827' };
     } else {
-        if(n <= 0.5) return { bg:'#dcfce7', fg:'#15803d', border:'#86efac' };
-        if(n <= 1)   return { bg:'#86efac', fg:'#14532d', border:'#4ade80' };
-        if(n <= 2)   return { bg:'#22c55e', fg:'#ffffff', border:'#16a34a' };
-        if(n <= 3)   return { bg:'#16a34a', fg:'#ffffff', border:'#15803d' };
-                     return { bg:'#14532d', fg:'#ffffff', border:'#14532d' };
+        if(n <= 0.5) return { bg:'#fef9c3', fg:'#92400e', border:'#fde68a' };
+        if(n <= 1)   return { bg:'#fde68a', fg:'#78350f', border:'#fbbf24' };
+        if(n <= 2)   return { bg:'#f59e0b', fg:'#ffffff', border:'#d97706' };
+        if(n <= 3)   return { bg:'#d97706', fg:'#ffffff', border:'#b45309' };
+                     return { bg:'#92400e', fg:'#ffffff', border:'#78350f' };
     }
 }
 
@@ -2920,10 +3112,11 @@ function renderFriseAnnee(annee, communesListe){
     const MOIS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
 
     let thead = `<thead><tr style="position:sticky;top:0;z-index:3;background:var(--card)">
-        <th style="padding:8px 14px;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);border-bottom:2px solid var(--border);min-width:180px;background:var(--card);position:sticky;left:0;z-index:4">Commune</th>
+        <th style="padding:8px 10px;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);border-bottom:2px solid var(--border);min-width:120px;max-width:150px;background:var(--card);position:sticky;left:0;z-index:4">Commune</th>
         <th style="padding:6px 2px;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);border-bottom:2px solid var(--border);width:32px;min-width:32px;text-align:center;background:var(--card)">Flux</th>`;
-    MOIS.forEach(m => {
-        thead += `<th style="padding:6px 1px;font-size:.6rem;font-weight:600;color:var(--muted);border-bottom:2px solid var(--border);text-align:center;min-width:44px;background:var(--card)">${m}</th>`;
+    MOIS.forEach((m, mi) => {
+        const borderLeft = mi > 0 ? 'border-left:1.5px solid var(--border);' : '';
+        thead += `<th style="padding:6px 1px;font-size:.65rem;font-weight:700;color:var(--muted);border-bottom:2px solid var(--border);text-align:center;min-width:44px;background:var(--card);${borderLeft}">${m}</th>`;
     });
     thead += `</tr></thead>`;
 
@@ -2957,12 +3150,12 @@ function renderFriseAnnee(annee, communesListe){
                 if(!moisArr || !moisArr.some(v => v)) return;
 
                 const groups = buildGroups(moisArr);
-                const fluxBadgeBg = fl === 'OMR' ? '#dbeafe' : '#dcfce7';
-                const fluxBadgeFg = fl === 'OMR' ? '#1e40af' : '#15803d';
+                const fluxBadgeBg = fl === 'OMR' ? '#e5e7eb' : '#fef9c3';
+                const fluxBadgeFg = fl === 'OMR' ? '#374151' : '#92400e';
 
                 tbody += `<tr style="background:${p.bg}">`;
                 if(firstRowOfCommune){
-                    tbody += `<td rowspan="${totalRows}" style="padding:8px 14px;border-bottom:2px solid var(--border);vertical-align:top;position:sticky;left:0;background:${rowBg};z-index:1">
+                    tbody += `<td rowspan="${totalRows}" style="padding:6px 10px;border-bottom:2px solid var(--border);vertical-align:top;position:sticky;left:0;background:${rowBg};z-index:1">
                         <div style="font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:3px">${r.nom}</div>
                         <div style="font-size:.65rem;color:var(--muted)">${r.zone||''}</div>
                     </td>`;
@@ -2972,21 +3165,26 @@ function renderFriseAnnee(annee, communesListe){
                     ${p.key === 'particuliers' && fl === 'OMR' ? `<div style="font-size:.55rem;font-weight:700;color:#7c3aed;margin-bottom:2px;white-space:nowrap">Voies part.</div>` : ''}
                     <span style="display:inline-block;padding:2px 5px;border-radius:8px;font-size:.6rem;font-weight:800;background:${fluxBadgeBg};color:${fluxBadgeFg}">${fl}</span>
                 </td>`;
+
+                // Pour ajouter les bordures verticales de mois, on parcourt mois par mois
+                let moisIndex = 0;
                 groups.forEach(g => {
                     const borderStyle = '1px solid var(--border)';
+                    const borderLeft = moisIndex > 0 ? 'border-left:1.5px solid var(--border);' : '';
                     if(!g.raw){
-                        tbody += `<td colspan="${g.span}" style="padding:3px 2px;border-bottom:${borderStyle}"></td>`;
+                        tbody += `<td colspan="${g.span}" style="padding:3px 2px;border-bottom:${borderStyle};${borderLeft}"></td>`;
                     } else {
                         const c = friseColor(g.code, fl);
                         const rangeLabel = g.span > 1 ? `${MOIS[g.start]}–${MOIS[g.start+g.span-1]}` : MOIS[g.start];
                         const tooltip = `${rangeLabel} : ${g.raw}`;
-                        tbody += `<td colspan="${g.span}" style="padding:3px 2px;border-bottom:${borderStyle}">
+                        tbody += `<td colspan="${g.span}" style="padding:3px 2px;border-bottom:${borderStyle};${borderLeft}">
                             <div title="${tooltip}" style="background:${c.bg};border:1.5px solid ${c.border};border-radius:5px;height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:default;padding:0 2px;overflow:hidden">
                                 <span style="font-size:.65rem;font-weight:800;color:${c.fg};line-height:1;white-space:nowrap">${g.code}</span>
-                                ${g.jours ? `<span style="font-size:.52rem;color:${c.fg};opacity:.85;line-height:1;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis">${g.jours}</span>` : ''}
+                                ${g.jours ? `<span style="font-size:.6rem;color:${c.fg};opacity:.85;line-height:1;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis">${g.jours}</span>` : ''}
                             </div>
                         </td>`;
                     }
+                    moisIndex += g.span;
                 });
                 tbody += `</tr>`;
             });
@@ -2995,11 +3193,9 @@ function renderFriseAnnee(annee, communesListe){
     });
     tbody += '</tbody>';
 
-    const nbCommunes = communesListe.filter(r => r.cJours && r.cJours[annee]).length;
     return `<div style="margin-bottom:32px">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
             <span style="background:var(--accent);color:#fff;padding:5px 18px;border-radius:20px;font-size:.9rem;font-weight:700;letter-spacing:.01em">${annee}</span>
-            <span style="font-size:.78rem;color:var(--muted)">${nbCommunes} commune${nbCommunes>1?'s':''}</span>
         </div>
         <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)">
             <table style="width:100%;border-collapse:collapse;background:var(--card);min-width:760px">
