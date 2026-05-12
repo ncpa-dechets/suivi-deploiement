@@ -615,6 +615,7 @@ let EQUIP_DATA = []; // nouvelles colonnes AV à créer (onglet 05_Nouveauxequip
 let EQUIP_LAYER = null;
 let EQUIP_VISIBLE = true;
 let COLLECTE_MAP = {}; // jours de collecte par code INSEE (onglet 07_JRSDECOLLECTE)
+let VP_DATA = [];    // voies particulières (onglet 08_VOIES_PARTICULIERES)
 
 // ═══════════════════════════════════════
 // FILE
@@ -655,6 +656,7 @@ function parse(wb){
     const r5 = rawSheet(wb, '05_Nouveauxequip');
     const r6 = rawSheet(wb, '06_Nonconteneurisables');
     const r7 = rawSheet(wb, '07_JRSDECOLLECTE');
+    const r8 = rawSheet(wb, '08_VOIES_PARTICULIERES');
 
     // ── Parse onglet 07_JRSDECOLLECTE ──
     // Structure : ligne 0 = titre, ligne 1 = en-têtes
@@ -702,6 +704,25 @@ function parse(wb){
             lat:      lat,
             lng:      lng,
         });
+    }
+
+    // ── Parse onglet 08_VOIES_PARTICULIERES ──
+    // Colonnes : 0=CODE INSEE, 1=Commune, 2=Nom de la voie, 3=Temporalité
+    // Temporalité prend les valeurs "Actuellement" ou "A venir"
+    // Une même voie peut apparaître dans les deux temporalités (voie pérenne en surfréquence).
+    VP_DATA = [];
+    if(r8 && r8.length > 1){
+        for(let i=1; i<r8.length; i++){
+            const row = r8[i];
+            const voie = String(val(row,2)||'').trim();
+            if(!voie) continue; // ligne sans nom de voie → ignorée
+            VP_DATA.push({
+                codeINSEE:   String(val(row,0)||'').trim(),
+                commune:     String(val(row,1)||'').trim(),
+                voie:        voie,
+                temporalite: String(val(row,3)||'').trim(),
+            });
+        }
     }
 
     // ── Parse onglet 04_PDR ──
@@ -1018,6 +1039,8 @@ function renderFiche(){
     const tauxColor=taux<30?'var(--red)':taux<70?'var(--orange)':taux<90?'var(--accent)':'var(--green)';
     const pctSecDisp=Math.round(r.pctResSec*1000)/10;
     const pctNonDisp=Math.round(r.pctNon*1000)/10;
+    // Total des 4 types d'adresses pour calcul des parts relatives dans le donut (|| 1 = garde-fou anti-division-par-zéro)
+    const totalAdrTypes = (r.addrParticuliers||0) + (r.addrPros||0) + (r.addrCollectif||0) + (r.addrAutres||0) || 1;
     const prioLabel=r.priorite===1?'P1 — Urgente':r.priorite===2?'P2 — Importante':r.priorite===3?'P3 — Planifiée':'P4';
     const prioBg=r.priorite===1?'rgba(220,38,38,.25)':r.priorite===2?'rgba(217,119,6,.25)':r.priorite===3?'rgba(30,64,175,.25)':'rgba(148,163,184,.2)';
     const densite=r.superficie>0?Math.round(r.popINSEE/r.superficie):0;
@@ -1118,10 +1141,10 @@ function renderFiche(){
                 <div>
                     <div style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Types d'adresses</div>
                     <div style="display:flex;flex-direction:column;gap:5px;font-size:.8rem">
-                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#3b82f6;margin-right:5px"></span>Particuliers : <strong>${f(r.addrParticuliers)}</strong></span>
-                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#8b5cf6;margin-right:5px"></span>Professionnels : <strong>${f(r.addrPros)}</strong></span>
-                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;margin-right:5px"></span>Collectifs : <strong>${f(r.addrCollectif)}</strong></span>
-                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#64748b;margin-right:5px"></span>Autres : <strong>${f(r.addrAutres)}</strong></span>
+                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#3b82f6;margin-right:5px"></span>Particuliers : <strong>${f(r.addrParticuliers)}</strong> <span style="color:var(--muted);font-size:.75rem">(${fmtPct(Math.round(r.addrParticuliers/totalAdrTypes*1000)/10)}%)</span></span>
+                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#8b5cf6;margin-right:5px"></span>Professionnels : <strong>${f(r.addrPros)}</strong> <span style="color:var(--muted);font-size:.75rem">(${fmtPct(Math.round(r.addrPros/totalAdrTypes*1000)/10)}%)</span></span>
+                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;margin-right:5px"></span>Collectifs : <strong>${f(r.addrCollectif)}</strong> <span style="color:var(--muted);font-size:.75rem">(${fmtPct(Math.round(r.addrCollectif/totalAdrTypes*1000)/10)}%)</span></span>
+                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#64748b;margin-right:5px"></span>Autres : <strong>${f(r.addrAutres)}</strong> <span style="color:var(--muted);font-size:.75rem">(${fmtPct(Math.round(r.addrAutres/totalAdrTypes*1000)/10)}%)</span></span>
                     </div>
                 </div>
             </div>
@@ -3099,10 +3122,82 @@ function renderFriseView(){
         </div>
         <div id="friseLegende"></div>
         <div id="friseContent"></div>
+        <div id="friseVoiesPart"></div>
     `;
 
     document.getElementById('friseLegende').innerHTML = renderLegende();
     document.getElementById('friseContent').innerHTML = annees.map(a => renderFriseAnnee(a, [r])).join('');
+    document.getElementById('friseVoiesPart').innerHTML = renderVoiesParticulieres(r);
+}
+
+
+// ── Voies particulières (onglet 08) — tableau 2 colonnes ──────────────
+// Pour les communes du littoral (Cabourg, Dives, Houlgate, Merville, Varaville),
+// liste les voies en surfréquence selon la temporalité.
+function renderVoiesParticulieres(r){
+    if(!VP_DATA || VP_DATA.length === 0) return '';
+    const voies = VP_DATA.filter(v => v.codeINSEE === String(r.code).trim());
+    if(voies.length === 0) return '';
+
+    // Tri par temporalité (tolère "A venir", "À venir", "Actuel", etc.)
+    const isActuelle = t => /actuel/i.test(t);
+    const isAvenir   = t => /venir/i.test(t);
+    const actuelles = voies.filter(v => isActuelle(v.temporalite));
+    const avenir    = voies.filter(v => isAvenir(v.temporalite));
+
+    // Normalisation pour détecter les voies présentes dans les 2 temporalités
+    // (minuscules + espaces normalisés)
+    const norm = s => String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
+    const setActuelles = new Set(actuelles.map(v => norm(v.voie)));
+    const setAvenir    = new Set(avenir.map(v => norm(v.voie)));
+
+    // Génère la liste HTML d'une colonne ; otherSet = ensemble normalisé de l'autre temporalité
+    const buildList = (list, otherSet) => {
+        if(list.length === 0){
+            return `<div style="padding:18px 14px;font-size:.78rem;color:var(--muted);font-style:italic;text-align:center">Aucune voie renseignée</div>`;
+        }
+        return list.map((v, i) => {
+            const commune = otherSet.has(norm(v.voie));
+            const last = (i === list.length - 1);
+            return `<div style="padding:7px 14px;${last ? '' : 'border-bottom:1px solid var(--border);'}font-size:.82rem;color:var(--text);display:flex;align-items:flex-start;gap:9px;line-height:1.35">
+                <span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:${commune ? '#10b981' : '#cbd5e1'};flex-shrink:0;margin-top:4px;box-shadow:0 0 0 1.5px rgba(255,255,255,.9), 0 1px 2px rgba(0,0,0,.12)" title="${commune ? 'Présente dans les deux temporalités' : 'Présente uniquement dans cette colonne'}"></span>
+                <span style="flex:1;word-break:break-word">${v.voie}</span>
+            </div>`;
+        }).join('');
+    };
+
+    return `<div style="margin-top:32px">
+        <h3 style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:8px">
+            <i class="fas fa-route" style="color:#7c3aed"></i>
+            Voies particulières concernées
+        </h3>
+        <div style="display:flex;align-items:center;gap:18px;font-size:.7rem;color:var(--muted);margin-bottom:12px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:6px">
+                <span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:#10b981"></span>
+                <span>Voie présente dans les deux temporalités</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+                <span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:#cbd5e1"></span>
+                <span>Voie présente uniquement dans cette colonne</span>
+            </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--card);box-shadow:var(--shadow)">
+                <div style="background:#1e40af;color:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+                    <span style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Situation actuelle</span>
+                    <span style="font-size:.7rem;font-weight:700;background:rgba(255,255,255,.22);padding:2px 9px;border-radius:10px">${actuelles.length} voie${actuelles.length>1?'s':''}</span>
+                </div>
+                <div>${buildList(actuelles, setAvenir)}</div>
+            </div>
+            <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--card);box-shadow:var(--shadow)">
+                <div style="background:#7c3aed;color:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+                    <span style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Situation à venir</span>
+                    <span style="font-size:.7rem;font-weight:700;background:rgba(255,255,255,.22);padding:2px 9px;border-radius:10px">${avenir.length} voie${avenir.length>1?'s':''}</span>
+                </div>
+                <div>${buildList(avenir, setActuelles)}</div>
+            </div>
+        </div>
+    </div>`;
 }
 
 
