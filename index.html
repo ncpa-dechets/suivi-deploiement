@@ -3119,7 +3119,11 @@ function renderFriseAnnee(annee, communesListe){
         <th style="padding:8px 10px;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);border-bottom:2px solid var(--border);min-width:120px;max-width:150px;background:var(--card);position:sticky;left:0;z-index:4">Commune</th>
         <th style="padding:6px 2px;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);border-bottom:2px solid var(--border);width:32px;min-width:32px;text-align:center;background:var(--card)">Flux</th>`;
     MOIS.forEach((m, mi) => {
-        const borderLeft = mi > 0 ? 'border-left:1.5px solid var(--border);' : '';
+        // Séparateurs renforcés : trimestriel (Avr/Juil/Oct) plus marqué, sinon standard
+        const isTrimestre = (mi === 3 || mi === 6 || mi === 9);
+        const borderLeft = mi > 0
+            ? (isTrimestre ? 'border-left:2.5px solid #64748b;' : 'border-left:2px solid #cbd5e1;')
+            : '';
         thead += `<th style="padding:6px 1px;font-size:.65rem;font-weight:700;color:var(--muted);border-bottom:2px solid var(--border);text-align:center;min-width:44px;background:var(--card);${borderLeft}">${m}</th>`;
     });
     thead += `</tr></thead>`;
@@ -3174,15 +3178,34 @@ function renderFriseAnnee(annee, communesListe){
                 let moisIndex = 0;
                 groups.forEach(g => {
                     const borderStyle = '1px solid var(--border)';
-                    const borderLeft = moisIndex > 0 ? 'border-left:1.5px solid var(--border);' : '';
+                    // Séparateur entre td : trimestriel (Avr/Juil/Oct) plus marqué, sinon standard
+                    const isTrimestre = (moisIndex === 3 || moisIndex === 6 || moisIndex === 9);
+                    const borderLeft = moisIndex > 0
+                        ? (isTrimestre ? 'border-left:2.5px solid #64748b;' : 'border-left:2px solid #cbd5e1;')
+                        : '';
+
+                    // Séparateurs internes pour les colspan > 1 (matérialisent les limites de mois fusionnés)
+                    let internalSeps = '';
+                    if(g.span > 1){
+                        for(let s = 1; s < g.span; s++){
+                            const leftPct = (s / g.span) * 100;
+                            const absMois = moisIndex + s; // position absolue (0-11) du mois après lequel on place le sep
+                            const isInternalTrim = (absMois === 3 || absMois === 6 || absMois === 9);
+                            const sepColor = isInternalTrim ? 'rgba(100,116,139,.75)' : 'rgba(148,163,184,.5)';
+                            const sepWidth = isInternalTrim ? '1.5px' : '1px';
+                            internalSeps += `<span style="position:absolute;top:0;bottom:0;left:${leftPct}%;width:${sepWidth};background:${sepColor};pointer-events:none;z-index:0"></span>`;
+                        }
+                    }
+
                     if(!g.raw){
-                        tbody += `<td colspan="${g.span}" style="padding:3px 2px;border-bottom:${borderStyle};${borderLeft}"></td>`;
+                        tbody += `<td colspan="${g.span}" style="padding:3px 2px;border-bottom:${borderStyle};${borderLeft}position:relative">${internalSeps}</td>`;
                     } else {
                         const c = friseColor(g.code, fl);
                         const rangeLabel = g.span > 1 ? `${MOIS[g.start]}–${MOIS[g.start+g.span-1]}` : MOIS[g.start];
                         const tooltip = `${rangeLabel} : ${g.raw}`;
-                        tbody += `<td colspan="${g.span}" style="padding:3px 2px;border-bottom:${borderStyle};${borderLeft}">
-                            <div title="${tooltip}" style="background:${c.bg};border:1.5px solid ${c.border};border-radius:5px;height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:default;padding:0 2px;overflow:hidden">
+                        tbody += `<td colspan="${g.span}" style="padding:3px 2px;border-bottom:${borderStyle};${borderLeft}position:relative">
+                            ${internalSeps}
+                            <div title="${tooltip}" style="position:relative;z-index:1;background:${c.bg};border:1.5px solid ${c.border};border-radius:5px;height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:default;padding:0 2px;overflow:hidden">
                                 <span style="font-size:.65rem;font-weight:800;color:${c.fg};line-height:1;white-space:nowrap">${g.code}</span>
                                 ${g.jours ? `<span style="font-size:.6rem;color:${c.fg};opacity:.85;line-height:1;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis">${g.jours}</span>` : ''}
                             </div>
