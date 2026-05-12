@@ -2803,8 +2803,11 @@ function buildFrisePDFHTML(r){
             <th style="padding:5px 8px;text-align:left;font-size:.55rem;font-weight:700;text-transform:uppercase;color:#94a3b8;border-bottom:2px solid #e2e8f0;min-width:50px">Profil</th>
             <th style="padding:4px 2px;font-size:.52rem;font-weight:700;text-transform:uppercase;color:#94a3b8;border-bottom:2px solid #e2e8f0;width:28px;text-align:center">Flux</th>`;
         MOIS.forEach((m,mi) => {
-            const bl = mi > 0 ? 'border-left:1px solid #e2e8f0;' : '';
-            thead += `<th style="padding:4px 1px;font-size:.55rem;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0;text-align:center;${bl}">${m}</th>`;
+            const isTrim = (mi === 3 || mi === 6 || mi === 9);
+            const bl = mi > 0
+                ? (isTrim ? 'border-left:2px solid #64748b;' : 'border-left:1.5px solid #cbd5e1;')
+                : '';
+            thead += `<th style="padding:4px 1px;font-size:.55rem;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0;text-align:center;min-width:42px;${bl}">${m}</th>`;
         });
         thead += `</tr></thead>`;
 
@@ -2841,15 +2844,33 @@ function buildFrisePDFHTML(r){
 
                 let moisIdx = 0;
                 groups.forEach(g => {
-                    const bl = moisIdx > 0 ? 'border-left:1px solid #e2e8f0;' : '';
+                    const isTrim = (moisIdx === 3 || moisIdx === 6 || moisIdx === 9);
+                    const bl = moisIdx > 0
+                        ? (isTrim ? 'border-left:2px solid #64748b;' : 'border-left:1.5px solid #cbd5e1;')
+                        : '';
+
+                    // Séparateurs internes pour les colspan > 1
+                    let internalSeps = '';
+                    if(g.span > 1){
+                        for(let s = 1; s < g.span; s++){
+                            const leftPct = (s / g.span) * 100;
+                            const absMois = moisIdx + s;
+                            const isInternalTrim = (absMois === 3 || absMois === 6 || absMois === 9);
+                            const sepColor = isInternalTrim ? 'rgba(100,116,139,.75)' : 'rgba(148,163,184,.5)';
+                            const sepWidth = isInternalTrim ? '1.5px' : '1px';
+                            internalSeps += `<span style="position:absolute;top:0;bottom:0;left:${leftPct}%;width:${sepWidth};background:${sepColor};pointer-events:none;z-index:0"></span>`;
+                        }
+                    }
+
                     if(!g.raw){
-                        tbody += `<td colspan="${g.span}" style="padding:2px 1px;border-bottom:1px solid #e2e8f0;${bl}"></td>`;
+                        tbody += `<td colspan="${g.span}" style="padding:2px 1px;border-bottom:1px solid #e2e8f0;${bl}position:relative;height:36px">${internalSeps}</td>`;
                     } else {
                         const c = pdfColor(g.code, fl);
-                        tbody += `<td colspan="${g.span}" style="padding:2px 1px;border-bottom:1px solid #e2e8f0;${bl}">
-                            <div style="background:${c.bg};border:1px solid ${c.border};border-radius:4px;height:32px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0px;padding:0 1px;overflow:hidden">
-                                <span style="font-size:.58rem;font-weight:800;color:${c.fg};line-height:1">${g.code}</span>
-                                ${g.jours ? `<span style="font-size:.5rem;color:${c.fg};opacity:.85;line-height:1;white-space:nowrap">${g.jours}</span>` : ''}
+                        tbody += `<td colspan="${g.span}" style="padding:2px 1px;border-bottom:1px solid #e2e8f0;${bl}position:relative;height:36px">
+                            ${internalSeps}
+                            <div style="position:absolute;top:2px;left:1px;right:1px;bottom:2px;z-index:1;background:${c.bg};border:1px solid ${c.border};border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0px;padding:0 1px;overflow:hidden">
+                                <span style="font-size:.58rem;font-weight:800;color:${c.fg};line-height:1;white-space:nowrap">${g.code}</span>
+                                ${g.jours ? `<span style="font-size:.5rem;color:${c.fg};opacity:.85;line-height:1;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis">${g.jours}</span>` : ''}
                             </div>
                         </td>`;
                     }
@@ -3198,14 +3219,14 @@ function renderFriseAnnee(annee, communesListe){
                     }
 
                     if(!g.raw){
-                        tbody += `<td colspan="${g.span}" style="padding:3px 2px;border-bottom:${borderStyle};${borderLeft}position:relative">${internalSeps}</td>`;
+                        tbody += `<td colspan="${g.span}" style="padding:3px 2px;border-bottom:${borderStyle};${borderLeft}position:relative;height:46px">${internalSeps}</td>`;
                     } else {
                         const c = friseColor(g.code, fl);
                         const rangeLabel = g.span > 1 ? `${MOIS[g.start]}–${MOIS[g.start+g.span-1]}` : MOIS[g.start];
                         const tooltip = `${rangeLabel} : ${g.raw}`;
-                        tbody += `<td colspan="${g.span}" style="padding:3px 2px;border-bottom:${borderStyle};${borderLeft}position:relative">
+                        tbody += `<td colspan="${g.span}" style="padding:3px 2px;border-bottom:${borderStyle};${borderLeft}position:relative;height:46px">
                             ${internalSeps}
-                            <div title="${tooltip}" style="position:relative;z-index:1;background:${c.bg};border:1.5px solid ${c.border};border-radius:5px;height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:default;padding:0 2px;overflow:hidden">
+                            <div title="${tooltip}" style="position:absolute;top:3px;left:2px;right:2px;bottom:3px;z-index:1;background:${c.bg};border:1.5px solid ${c.border};border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:default;padding:0 2px;overflow:hidden">
                                 <span style="font-size:.65rem;font-weight:800;color:${c.fg};line-height:1;white-space:nowrap">${g.code}</span>
                                 ${g.jours ? `<span style="font-size:.6rem;color:${c.fg};opacity:.85;line-height:1;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis">${g.jours}</span>` : ''}
                             </div>
