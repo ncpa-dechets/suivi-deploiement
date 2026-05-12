@@ -2737,14 +2737,13 @@ function buildFrisePDFHTML(r){
             if(n<=1)   return { bg:'#d1d5db', fg:'#1f2937', border:'#9ca3af' };
             if(n<=2)   return { bg:'#9ca3af', fg:'#ffffff', border:'#6b7280' };
             if(n<=3)   return { bg:'#6b7280', fg:'#ffffff', border:'#4b5563' };
-            if(n<=4)   return { bg:'#374151', fg:'#ffffff', border:'#1f2937' };
-                       return { bg:'#111827', fg:'#ffffff', border:'#111827' };
+            if(n<=4)   return { bg:'#4b5563', fg:'#ffffff', border:'#374151' };
+            if(n<=5)   return { bg:'#374151', fg:'#ffffff', border:'#1f2937' };
+            if(n<=6)   return { bg:'#1f2937', fg:'#ffffff', border:'#111827' };
+                       return { bg:'#020617', fg:'#ffffff', border:'#020617' };
         } else {
             if(n<=0.5) return { bg:'#fef9c3', fg:'#92400e', border:'#fde68a' };
-            if(n<=1)   return { bg:'#fde68a', fg:'#78350f', border:'#fbbf24' };
-            if(n<=2)   return { bg:'#f59e0b', fg:'#ffffff', border:'#d97706' };
-            if(n<=3)   return { bg:'#d97706', fg:'#ffffff', border:'#b45309' };
-                       return { bg:'#92400e', fg:'#ffffff', border:'#78350f' };
+                       return { bg:'#fde68a', fg:'#78350f', border:'#fbbf24' };
         }
     }
 
@@ -2764,23 +2763,30 @@ function buildFrisePDFHTML(r){
     }
 
     // Légende compacte pour le PDF
-    const legendeItems = [
+    const legendeOMR = [
         { code:'C0.5', label:'1×/2 sem.' },
         { code:'C1',   label:'1×/sem.' },
         { code:'C2',   label:'2×/sem.' },
         { code:'C3',   label:'3×/sem.' },
-        { code:'C4+',  label:'4×/sem.+' },
+        { code:'C4',   label:'4×/sem.' },
+        { code:'C5',   label:'5×/sem.' },
+        { code:'C6',   label:'6×/sem.' },
+        { code:'C7',   label:'7×/sem.' },
+    ];
+    const legendeTRI = [
+        { code:'C0.5', label:'1×/2 sem.' },
+        { code:'C1',   label:'1×/sem.' },
     ];
     const legendeFluxes = [
-        { key:'OMR', label:'OMR (résiduels)' },
-        { key:'TRI', label:'TRI (recyclables)' }
+        { key:'OMR', label:'OMR (résiduels)',   items: legendeOMR },
+        { key:'TRI', label:'TRI (recyclables)', items: legendeTRI }
     ];
     let legendeHTML = `<div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:16px">
         <div style="font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8">Fréquences :</div>`;
     legendeFluxes.forEach(fl => {
         legendeHTML += `<div style="display:flex;align-items:center;gap:4px">
             <span style="font-size:.58rem;font-weight:700;color:#64748b">${fl.label}</span>`;
-        legendeItems.forEach(it => {
+        fl.items.forEach(it => {
             const c = pdfColor(it.code, fl.key);
             legendeHTML += `<div style="display:flex;flex-direction:column;align-items:center;gap:1px">
                 <div style="width:30px;height:18px;background:${c.bg};border:1px solid ${c.border};border-radius:4px;display:flex;align-items:center;justify-content:center">
@@ -2812,8 +2818,8 @@ function buildFrisePDFHTML(r){
         thead += `</tr></thead>`;
 
         const profils = [
-            { key:'commune',      label:'Commune' },
-            { key:'particuliers', label:'Voies part.' },
+            { key:'commune',      label:'Commune entière' },
+            { key:'particuliers', label:'Voies particulières' },
         ];
         const fluxOrder = ['OMR','TRI'];
 
@@ -2869,8 +2875,8 @@ function buildFrisePDFHTML(r){
                         tbody += `<td colspan="${g.span}" style="padding:2px 1px;border-bottom:1px solid #e2e8f0;${bl}position:relative;height:36px">
                             ${internalSeps}
                             <div style="position:absolute;top:2px;left:1px;right:1px;bottom:2px;z-index:1;background:${c.bg};border:1px solid ${c.border};border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0px;padding:0 1px;overflow:hidden">
-                                <span style="font-size:.58rem;font-weight:800;color:${c.fg};line-height:1;white-space:nowrap">${g.code}</span>
-                                ${g.jours ? `<span style="font-size:.5rem;color:${c.fg};opacity:.85;line-height:1;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis">${g.jours}</span>` : ''}
+                                ${g.jours ? `<span style="font-size:.55rem;font-weight:800;color:${c.fg};line-height:1;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis">${g.jours}</span>
+                                <span style="font-size:.5rem;font-weight:400;color:${c.fg};opacity:.85;line-height:1;white-space:nowrap">${g.code}</span>` : `<span style="font-size:.58rem;font-weight:800;color:${c.fg};line-height:1;white-space:nowrap">${g.code}</span>`}
                             </div>
                         </td>`;
                     }
@@ -3035,14 +3041,13 @@ function friseColor(rawCode, flux){
         if(n <= 1)   return { bg:'#d1d5db', fg:'#1f2937', border:'#9ca3af' };
         if(n <= 2)   return { bg:'#9ca3af', fg:'#ffffff', border:'#6b7280' };
         if(n <= 3)   return { bg:'#6b7280', fg:'#ffffff', border:'#4b5563' };
-        if(n <= 4)   return { bg:'#374151', fg:'#ffffff', border:'#1f2937' };
-                     return { bg:'#111827', fg:'#ffffff', border:'#111827' };
+        if(n <= 4)   return { bg:'#4b5563', fg:'#ffffff', border:'#374151' };
+        if(n <= 5)   return { bg:'#374151', fg:'#ffffff', border:'#1f2937' };
+        if(n <= 6)   return { bg:'#1f2937', fg:'#ffffff', border:'#111827' };
+                     return { bg:'#020617', fg:'#ffffff', border:'#020617' };
     } else {
         if(n <= 0.5) return { bg:'#fef9c3', fg:'#92400e', border:'#fde68a' };
-        if(n <= 1)   return { bg:'#fde68a', fg:'#78350f', border:'#fbbf24' };
-        if(n <= 2)   return { bg:'#f59e0b', fg:'#ffffff', border:'#d97706' };
-        if(n <= 3)   return { bg:'#d97706', fg:'#ffffff', border:'#b45309' };
-                     return { bg:'#92400e', fg:'#ffffff', border:'#78350f' };
+                     return { bg:'#fde68a', fg:'#78350f', border:'#fbbf24' };
     }
 }
 
@@ -3104,20 +3109,30 @@ function renderFriseView(){
 // ── Légende fréquences ───────────────────────────────────────────────
 function renderLegende(){
     const MOIS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
-    const items = [
+    const itemsOMR = [
         { code:'C0.5', label:'1×/2 sem.' },
         { code:'C1',   label:'1×/sem.'   },
         { code:'C2',   label:'2×/sem.'   },
         { code:'C3',   label:'3×/sem.'   },
-        { code:'C4+',  label:'4×/sem. et +'  },
+        { code:'C4',   label:'4×/sem.'   },
+        { code:'C5',   label:'5×/sem.'   },
+        { code:'C6',   label:'6×/sem.'   },
+        { code:'C7',   label:'7×/sem.'   },
     ];
-    const fluxes = [{ key:'OMR', label:'OMR (déchets résiduels)' }, { key:'TRI', label:'TRI (recyclables)' }];
+    const itemsTRI = [
+        { code:'C0.5', label:'1×/2 sem.' },
+        { code:'C1',   label:'1×/sem.'   },
+    ];
+    const fluxes = [
+        { key:'OMR', label:'OMR (déchets résiduels)', items: itemsOMR },
+        { key:'TRI', label:'TRI (recyclables)',       items: itemsTRI },
+    ];
     let html = `<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start;padding:14px 18px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:22px">
         <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);align-self:center;white-space:nowrap">Fréquences :</div>`;
     fluxes.forEach(f => {
         html += `<div style="display:flex;align-items:center;gap:6px">
             <span style="font-size:.68rem;font-weight:700;color:var(--muted);white-space:nowrap">${f.label}</span>`;
-        items.forEach(it => {
+        f.items.forEach(it => {
             const c = friseColor(it.code, f.key);
             html += `<div title="${it.code} = ${it.label}" style="display:flex;flex-direction:column;align-items:center;gap:2px;cursor:default">
                 <div style="width:38px;height:24px;background:${c.bg};border:1.5px solid ${c.border};border-radius:5px;display:flex;align-items:center;justify-content:center">
@@ -3158,7 +3173,7 @@ function renderFriseAnnee(annee, communesListe){
         const rowBg = ci % 2 === 0 ? '#f8fafc' : '#ffffff';
         const profils = [
             { key:'commune',      label:null,          bg: rowBg    },
-            { key:'particuliers', label:'Voies part.',  bg:'#faf5ff' },
+            { key:'particuliers', label:'Voies particulières',  bg:'#faf5ff' },
         ];
         const fluxOrder = ['OMR','TRI'];
 
@@ -3170,6 +3185,10 @@ function renderFriseAnnee(annee, communesListe){
             });
         });
         if(totalRows === 0) return;
+
+        // Vrai si la commune a aussi des données pour le profil 'particuliers'
+        // (n'affichera "Commune entière" que dans ce cas, pour distinguer des Voies particulières)
+        const hasParticuliers = ad['particuliers'] && fluxOrder.some(fl => ad['particuliers'][fl] && ad['particuliers'][fl].some(v => v));
 
         let firstRowOfCommune = true;
         profils.forEach(p => {
@@ -3191,7 +3210,8 @@ function renderFriseAnnee(annee, communesListe){
                     firstRowOfCommune = false;
                 }
                 tbody += `<td style="padding:4px 6px;border-bottom:1px solid var(--border);text-align:center;white-space:nowrap">
-                    ${p.key === 'particuliers' && fl === 'OMR' ? `<div style="font-size:.55rem;font-weight:700;color:#7c3aed;margin-bottom:2px;white-space:nowrap">Voies part.</div>` : ''}
+                    ${p.key === 'commune' && fl === 'OMR' && hasParticuliers ? `<div style="font-size:.55rem;font-weight:700;color:#475569;margin-bottom:2px;white-space:nowrap">Commune entière</div>` : ''}
+                    ${p.key === 'particuliers' && fl === 'OMR' ? `<div style="font-size:.55rem;font-weight:700;color:#7c3aed;margin-bottom:2px;white-space:nowrap">Voies particulières</div>` : ''}
                     <span style="display:inline-block;padding:2px 5px;border-radius:8px;font-size:.6rem;font-weight:800;background:${fluxBadgeBg};color:${fluxBadgeFg}">${fl}</span>
                 </td>`;
 
@@ -3227,8 +3247,8 @@ function renderFriseAnnee(annee, communesListe){
                         tbody += `<td colspan="${g.span}" style="padding:3px 2px;border-bottom:${borderStyle};${borderLeft}position:relative;height:46px">
                             ${internalSeps}
                             <div title="${tooltip}" style="position:absolute;top:3px;left:2px;right:2px;bottom:3px;z-index:1;background:${c.bg};border:1.5px solid ${c.border};border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:default;padding:0 2px;overflow:hidden">
-                                <span style="font-size:.65rem;font-weight:800;color:${c.fg};line-height:1;white-space:nowrap">${g.code}</span>
-                                ${g.jours ? `<span style="font-size:.6rem;color:${c.fg};opacity:.85;line-height:1;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis">${g.jours}</span>` : ''}
+                                ${g.jours ? `<span style="font-size:.62rem;font-weight:800;color:${c.fg};line-height:1;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis">${g.jours}</span>
+                                <span style="font-size:.58rem;font-weight:400;color:${c.fg};opacity:.85;line-height:1;white-space:nowrap">${g.code}</span>` : `<span style="font-size:.65rem;font-weight:800;color:${c.fg};line-height:1;white-space:nowrap">${g.code}</span>`}
                             </div>
                         </td>`;
                     }
