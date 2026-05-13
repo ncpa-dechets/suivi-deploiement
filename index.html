@@ -205,11 +205,28 @@
         .leg-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
         .map-info-panel {
             position:absolute; top:12px; right:12px; z-index:500;
-            background:#fff; border-radius:10px; padding:12px 16px;
-            box-shadow:var(--shadow-md); font-size:.78rem; max-width:200px;
-            display:none;
+            background:#fff; border-radius:10px;
+            box-shadow:var(--shadow-md); font-size:.78rem;
+            width:240px; max-height:calc(100% - 24px);
+            display:none; flex-direction:column; overflow:hidden;
         }
-        .map-info-panel.show { display:block; }
+        .map-info-panel.show { display:flex; }
+        .map-info-header {
+            display:flex; align-items:center; gap:6px; padding:10px 12px;
+            border-bottom:1px solid #f1f5f9; flex-shrink:0; background:#fafafa;
+            border-radius:10px 10px 0 0;
+        }
+        .map-info-body {
+            padding:12px 14px; overflow-y:auto; flex:1 1 auto;
+        }
+        .map-info-panel.collapsed .map-info-body { display:none; }
+        .map-info-panel.collapsed .map-info-header { border-bottom:none; border-radius:10px; }
+        .panel-toggle-btn {
+            background:none; border:none; cursor:pointer; color:#64748b;
+            padding:2px 4px; font-size:.85rem; border-radius:4px;
+            display:flex; align-items:center; justify-content:center;
+        }
+        .panel-toggle-btn:hover { background:#f1f5f9; color:#1e293b; }
 
         /* Avancement view */
         .av-row {
@@ -538,7 +555,15 @@
             </div>
 
             <!-- Contrôle fond de carte -->
-            <div id="layerControl" style="position:absolute;top:12px;left:12px;z-index:1000;background:#fff;border-radius:10px;padding:10px 14px;box-shadow:0 4px 12px rgba(0,0,0,.12);font-size:.75rem;min-width:190px;">
+            <div id="layerControl" style="position:absolute;top:12px;left:12px;z-index:1000;background:#fff;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.12);font-size:.75rem;min-width:200px;max-width:220px;display:flex;flex-direction:column;overflow:hidden;max-height:calc(100% - 24px);">
+                <div style="display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid #f1f5f9;flex-shrink:0;background:#fafafa;">
+                    <i class="fas fa-layer-group" style="color:var(--accent);font-size:.85rem"></i>
+                    <div style="font-weight:700;font-size:.78rem;color:#1e293b;flex:1">Couches & affichage</div>
+                    <button class="panel-toggle-btn" id="layerCtrlToggleBtn" onclick="toggleLayerControl()" title="Réduire / déplier">
+                        <i class="fas fa-chevron-up"></i>
+                    </button>
+                </div>
+                <div id="layerControlBody" style="padding:10px 14px;overflow-y:auto;flex:1 1 auto;">
                 <div style="font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;font-size:.65rem;">Fond de carte</div>
                 <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin-bottom:5px">
                     <input type="radio" name="baseLayer" value="plan" checked onchange="switchLayer('plan')" style="accent-color:var(--accent)">
@@ -553,6 +578,10 @@
                     <button id="tm-aucun"     onclick="setMapTheme('aucun')"          style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px;cursor:pointer;text-align:left;font-size:.72rem;font-family:inherit;background:transparent"><i class="fas fa-border-all" style="width:12px;color:#94a3b8"></i> Limites seules</button>
                     <button id="tm-dotation"  onclick="setMapTheme('dotation')"       style="border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px;cursor:pointer;text-align:left;font-size:.72rem;font-family:inherit;background:var(--accent-light)"><i class="fas fa-trash-can" style="width:12px;color:var(--green)"></i> Taux dotation</button>
                 </div>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin-top:8px;font-size:.72rem;color:#475569;">
+                    <input type="checkbox" id="mapFillToggle" checked onchange="toggleMapFill(this.checked)" style="accent-color:var(--accent)">
+                    <i class="fas fa-fill-drip" style="width:12px;color:#64748b"></i> Afficher le fond des communes
+                </label>
                 <div id="pdrToggleWrap" style="display:none;border-top:1px solid #f1f5f9;margin-top:9px;padding-top:9px;">
                     <div style="font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;font-size:.65rem;">Points PDR</div>
                     <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin-bottom:6px">
@@ -582,6 +611,14 @@
                     </div>
                     <button id="btnEquipPanel" onclick="toggleEquipPanel()" style="width:100%;border:1px solid #a7f3d0;border-radius:6px;padding:5px 8px;cursor:pointer;text-align:left;font-size:.72rem;font-family:inherit;background:#ecfdf5;color:#059669;font-weight:600"><i class="fas fa-table-list" style="width:12px"></i> Ouvrir le tableau</button>
                 </div>
+                <div id="raeToggleWrap" style="display:none;border-top:1px solid #f1f5f9;margin-top:9px;padding-top:9px;">
+                    <div style="font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;font-size:.65rem;">Reste à enquêter</div>
+                    <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin-bottom:6px">
+                        <input type="checkbox" id="raeToggle" onchange="toggleRAELayer(this.checked)" style="accent-color:#ec4899">
+                        <i class="fas fa-magnifying-glass" style="color:#ec4899;width:12px"></i> Afficher les adresses (<span id="raeCount">0</span>)
+                    </label>
+                </div>
+                </div><!-- /layerControlBody -->
             </div>
             <div class="map-legend" id="mapLegend" style="display:none">
                 <h4>Priorité commune</h4>
@@ -591,7 +628,14 @@
                 <div class="leg-item"><div class="leg-dot" style="background:#94a3b8"></div> P4 / Non défini</div>
             </div>
             <div class="map-info-panel" id="mapInfoPanel">
-                <div id="mapInfoContent"></div>
+                <div class="map-info-header">
+                    <i class="fas fa-location-dot" style="color:var(--accent);font-size:.85rem"></i>
+                    <div id="mapInfoTitle" style="font-weight:700;font-size:.82rem;color:#1e293b;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</div>
+                    <button class="panel-toggle-btn" id="mapInfoToggleBtn" onclick="toggleMapInfoPanel()" title="Réduire / déplier">
+                        <i class="fas fa-chevron-up"></i>
+                    </button>
+                </div>
+                <div class="map-info-body" id="mapInfoContent"></div>
             </div>
         </div>
     </main>
@@ -614,6 +658,9 @@ let NC_VISIBLE = false; // masqué par défaut
 let EQUIP_DATA = []; // nouvelles colonnes AV à créer (onglet 05_Nouveauxequip)
 let EQUIP_LAYER = null;
 let EQUIP_VISIBLE = true;
+let RAE_DATA = [];   // adresses reste à enquêter (onglet 09_RESTE_A_ENQUETER)
+let RAE_LAYER = null;
+let RAE_VISIBLE = false; // masqué par défaut
 let COLLECTE_MAP = {}; // jours de collecte par code INSEE (onglet 07_JRSDECOLLECTE)
 let VP_DATA = [];    // voies particulières (onglet 08_VOIES_PARTICULIERES)
 
@@ -657,6 +704,7 @@ function parse(wb){
     const r6 = rawSheet(wb, '06_Nonconteneurisables');
     const r7 = rawSheet(wb, '07_JRSDECOLLECTE');
     const r8 = rawSheet(wb, '08_VOIES_PARTICULIERES');
+    const r9 = rawSheet(wb, '09_RESTE_A_ENQUETER');
 
     // ── Parse onglet 07_JRSDECOLLECTE ──
     // Structure : ligne 0 = titre, ligne 1 = en-têtes
@@ -704,6 +752,34 @@ function parse(wb){
             lat:      lat,
             lng:      lng,
         });
+    }
+
+    // ── Parse onglet 09_RESTE_A_ENQUETER ──
+    // Colonnes : 0=REFER, 1=CODE INSEE, 2=LATITUDE, 3=LONGITUDE, 4=COMMUNE,
+    // 5=TYPE_LOGEMENT, 6=DATE_ENQ, 7=LIVRABLE, 8=OM_LIVRE, 9=TRI_LIVRE,
+    // 10=ADRESSE, 11=RS
+    RAE_DATA = [];
+    if(r9 && r9.length > 1){
+        for(let i=1; i<r9.length; i++){
+            const row = r9[i];
+            const lat = parseFloat(String(row[2]||'').replace(',','.'));
+            const lng = parseFloat(String(row[3]||'').replace(',','.'));
+            if(isNaN(lat) || isNaN(lng) || lat===0 || lng===0) continue;
+            RAE_DATA.push({
+                refer:     val(row,0),
+                codeINSEE: String(val(row,1)).trim(),
+                lat:       lat,
+                lng:       lng,
+                commune:   String(val(row,4)).trim(),
+                type:      String(val(row,5)||'').trim(),
+                dateEnq:   String(val(row,6)||'').trim(),
+                livrable:  String(val(row,7)||'').trim(),
+                omLivre:   num(row,8),
+                triLivre:  num(row,9),
+                adresse:   String(val(row,10)).trim(),
+                rs:        String(val(row,11)||'').trim(),
+            });
+        }
     }
 
     // ── Parse onglet 08_VOIES_PARTICULIERES ──
@@ -854,6 +930,9 @@ function parse(wb){
             livraison1:     String(val(row2,30)).trim(),  // 1ère livraison à domicile
             livraison2:     String(val(row2,31)).trim(),  // 2ème livraison à domicile
             livraison3:     String(val(row2,32)).trim(),  // 3ème livraison à domicile
+            // col 33-34 : avancement des enquêtes terrain
+            enquetes:       num(row2,33),  // col 33 — Enquêtés
+            resteEnq:       num(row2,34),  // col 34 — Reste à enquêter
 
             // ── Onglet 03 ── (col 0=code, 1=nom, données à partir col 2)
             bacsOMR:        num(row3,2),
@@ -1132,7 +1211,7 @@ function renderFiche(){
         </div>
 
         <!-- DONUTS RÉPARTITION ADRESSES -->
-        <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:20px;display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
             <!-- Donut 1 : types d'adresses -->
             <div style="display:flex;align-items:center;gap:18px">
                 <div style="width:120px;height:120px;flex-shrink:0">
@@ -1148,7 +1227,27 @@ function renderFiche(){
                     </div>
                 </div>
             </div>
-            <!-- Donut 2 : conteneurisables / non conteneurisables -->
+            <!-- Donut 2 : enquêtés / reste à enquêter -->
+            <div style="display:flex;align-items:center;gap:18px">
+                <div style="width:120px;height:120px;flex-shrink:0">
+                    <canvas id="enqDonutChart" width="120" height="120"></canvas>
+                </div>
+                <div>
+                    <div style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Avancement enquêtes</div>
+                    <div style="display:flex;flex-direction:column;gap:5px;font-size:.8rem">
+                        ${(()=>{
+                            const totalEnq = (r.enquetes||0) + (r.resteEnq||0);
+                            const pctEnq = totalEnq>0 ? Math.round(r.enquetes/totalEnq*1000)/10 : 0;
+                            const pctRest = totalEnq>0 ? Math.round(r.resteEnq/totalEnq*1000)/10 : 0;
+                            return `
+                                <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#059669;margin-right:5px"></span>Enquêtés : <strong>${f(r.enquetes)}</strong> <span style="color:var(--muted);font-size:.75rem">(${fmtPct(pctEnq)}%)</span></span>
+                                <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ec4899;margin-right:5px"></span>Reste à enquêter : <strong>${f(r.resteEnq)}</strong> <span style="color:var(--muted);font-size:.75rem">(${fmtPct(pctRest)}%)</span></span>
+                            `;
+                        })()}
+                    </div>
+                </div>
+            </div>
+            <!-- Donut 3 : conteneurisables / non conteneurisables -->
             <div style="display:flex;align-items:center;gap:18px">
                 <div style="width:120px;height:120px;flex-shrink:0">
                     <canvas id="contDonutChart" width="120" height="120"></canvas>
@@ -1513,6 +1612,33 @@ function renderFiche(){
         });
     }
 
+    // Donut enquêtés / reste à enquêter
+    const enqCanvas = document.getElementById('enqDonutChart');
+    if(enqCanvas){
+        if(window._enqDonutChart) window._enqDonutChart.destroy();
+        const totalEnq = (r.enquetes||0) + (r.resteEnq||0);
+        window._enqDonutChart = new Chart(enqCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: ['Enquêtés','Reste à enquêter'],
+                datasets: [{
+                    data: [r.enquetes, r.resteEnq],
+                    backgroundColor: ['#059669','#ec4899'],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                cutout: '62%',
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { display: false }, tooltip: {
+                    callbacks: { label: ctx => ctx.label + ' : ' + ctx.parsed + ' (' + (totalEnq>0 ? Math.round(ctx.parsed/totalEnq*100) : 0) + '%)' }
+                }}
+            }
+        });
+    }
+
 }
 
 
@@ -1623,11 +1749,11 @@ function switchLayer(type){
     CURRENT_LAYER = type;
     if(type==='satellite'){
         if(BASE_PLAN) MAIN_MAP.removeLayer(BASE_PLAN);
-        if(!BASE_SAT) BASE_SAT = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri',maxZoom:17});
+        if(!BASE_SAT) BASE_SAT = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri',maxZoom:19});
         BASE_SAT.addTo(MAIN_MAP);
     } else {
         if(BASE_SAT) MAIN_MAP.removeLayer(BASE_SAT);
-        if(!BASE_PLAN) BASE_PLAN = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OSM © CARTO',maxZoom:17});
+        if(!BASE_PLAN) BASE_PLAN = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OSM © CARTO',maxZoom:19});
         BASE_PLAN.addTo(MAIN_MAP);
     }
 }
@@ -1658,7 +1784,7 @@ function initMainMap(){
         MAP_INITIALIZED = true;
         MAIN_MAP = L.map('mainMap', {zoomControl:true});
         BASE_PLAN = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
-            attribution:'© OSM © CARTO', maxZoom:17
+            attribution:'© OSM © CARTO', maxZoom:19
         }).addTo(MAIN_MAP);
     }
 
@@ -1702,6 +1828,7 @@ function initMainMap(){
     renderPDRMarkers();
     renderNCMarkers();
     renderEquipMarkers();
+    renderRAEMarkers();
 
     // Afficher la légende si données chargées
     document.getElementById('mapLegend').style.display = D.length>0 ? 'block' : 'none';
@@ -1721,11 +1848,18 @@ function showMapStats(idx, latlng){
     const tauxColor = taux<30?'#dc2626':taux<70?'#d97706':taux<90?'#1e40af':'#059669';
     const pctNonDisp = Math.round(r.pctNon*1000)/10;
     const panel = document.getElementById('mapInfoPanel');
+    const title = document.getElementById('mapInfoTitle');
     const content = document.getElementById('mapInfoContent');
+
+    // Totaux pour les donuts
+    const totalAdrTypes = (r.addrParticuliers||0) + (r.addrPros||0) + (r.addrCollectif||0) + (r.addrAutres||0) || 1;
+    const totalCont = (r.addrCont||0) + (r.addrNon||0);
+    const totalEnq = (r.enquetes||0) + (r.resteEnq||0);
+
+    title.textContent = r.nom;
     content.innerHTML = `
-        <div style="font-weight:700;font-size:.88rem;margin-bottom:6px;color:#1e293b">${r.nom}</div>
         <div style="font-size:.7rem;color:#64748b;margin-bottom:10px">${r.zone||'—'} · ${f(r.popINSEE)} hab.</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
             <div style="background:#eff6ff;border-radius:7px;padding:7px 9px">
                 <div style="font-size:.62rem;color:#1e40af;font-weight:600;margin-bottom:2px">ADRESSES</div>
                 <div style="font-size:1rem;font-weight:700;color:#1e40af">${f(r.addrTotal)}</div>
@@ -1735,7 +1869,7 @@ function showMapStats(idx, latlng){
                 <div style="font-size:1rem;font-weight:700;color:${tauxColor}">${fmtPct(taux)}%</div>
             </div>
         </div>
-        <div style="font-size:.75rem;line-height:1.8">
+        <div style="font-size:.75rem;line-height:1.7;margin-bottom:12px">
             <div>📍 PDR existants : <strong>${r.pdrPubPriv}</strong></div>
             <div>♻️ Colonnes EMB aér./ent. : <strong>${r.colAerEMB} / ${r.colEntEMB}</strong></div>
             <div>🟢 Colonnes verre : <strong>${r.colAerVerre+r.colEntVerre}</strong></div>
@@ -1743,8 +1877,103 @@ function showMapStats(idx, latlng){
             <div>🏗️ PDR à créer : <strong style="color:${r.pdrCreer>0?'#059669':'inherit'}">${r.pdrCreer}</strong></div>
             ${r.marchesAR>0?`<div style="color:#dc2626">⚠️ Marches arrière : <strong>${r.marchesAR}</strong></div>`:''}
         </div>
-        <button onclick="setView('fiche')" style="margin-top:10px;padding:5px 10px;border:none;border-radius:7px;background:#1e40af;color:#fff;cursor:pointer;font-size:.75rem;font-family:inherit;font-weight:600;width:100%">Voir la fiche complète →</button>`;
+
+        <!-- Donut 1 : types d'adresses -->
+        <div style="border-top:1px solid #f1f5f9;padding-top:10px;margin-bottom:10px">
+            <div style="font-size:.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Types d'adresses</div>
+            <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:74px;height:74px;flex-shrink:0">
+                    <canvas id="mapDonutAddr" width="74" height="74"></canvas>
+                </div>
+                <div style="font-size:.68rem;line-height:1.5;display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+                    <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#3b82f6;margin-right:4px"></span>Part. <strong>${f(r.addrParticuliers)}</strong></span>
+                    <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#8b5cf6;margin-right:4px"></span>Pros <strong>${f(r.addrPros)}</strong></span>
+                    <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-right:4px"></span>Coll. <strong>${f(r.addrCollectif)}</strong></span>
+                    <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#64748b;margin-right:4px"></span>Autres <strong>${f(r.addrAutres)}</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Donut 2 : avancement enquêtes -->
+        <div style="border-top:1px solid #f1f5f9;padding-top:10px;margin-bottom:10px">
+            <div style="font-size:.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Avancement enquêtes</div>
+            <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:74px;height:74px;flex-shrink:0">
+                    <canvas id="mapDonutEnq" width="74" height="74"></canvas>
+                </div>
+                <div style="font-size:.68rem;line-height:1.5;display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+                    <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#059669;margin-right:4px"></span>Enquêtés <strong>${f(r.enquetes)}</strong> <span style="color:var(--muted)">(${fmtPct(totalEnq>0 ? Math.round(r.enquetes/totalEnq*1000)/10 : 0)}%)</span></span>
+                    <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ec4899;margin-right:4px"></span>Reste <strong>${f(r.resteEnq)}</strong> <span style="color:var(--muted)">(${fmtPct(totalEnq>0 ? Math.round(r.resteEnq/totalEnq*1000)/10 : 0)}%)</span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Donut 3 : conteneurisation -->
+        <div style="border-top:1px solid #f1f5f9;padding-top:10px;margin-bottom:12px">
+            <div style="font-size:.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Conteneurisation</div>
+            <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:74px;height:74px;flex-shrink:0">
+                    <canvas id="mapDonutCont" width="74" height="74"></canvas>
+                </div>
+                <div style="font-size:.68rem;line-height:1.5;display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+                    <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#2563eb;margin-right:4px"></span>Cont. <strong>${f(r.addrCont)}</strong> <span style="color:var(--muted)">(${fmtPct(Math.round(100-pctNonDisp))}%)</span></span>
+                    <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-right:4px"></span>Non c. <strong>${f(r.addrNon)}</strong> <span style="color:var(--muted)">(${fmtPct(pctNonDisp)}%)</span></span>
+                </div>
+            </div>
+        </div>
+
+        <button onclick="setView('fiche')" style="padding:6px 10px;border:none;border-radius:7px;background:#1e40af;color:#fff;cursor:pointer;font-size:.75rem;font-family:inherit;font-weight:600;width:100%">Voir la fiche complète →</button>`;
     panel.classList.add('show');
+    panel.classList.remove('collapsed');
+    document.getElementById('mapInfoToggleBtn').querySelector('i').className = 'fas fa-chevron-up';
+
+    // ── Création des 3 donuts (Chart.js) après injection DOM ──
+    const donutOpts = (data, colors, total) => ({
+        type: 'doughnut',
+        data: { datasets: [{ data, backgroundColor: colors, borderWidth: 1.5, borderColor: '#fff' }] },
+        options: {
+            cutout: '58%', responsive: true, maintainAspectRatio: true,
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            animation: { duration: 250 }
+        }
+    });
+
+    // Détruire les anciennes instances pour éviter les fuites mémoire
+    if(window._mapDonutAddr) window._mapDonutAddr.destroy();
+    if(window._mapDonutEnq)  window._mapDonutEnq.destroy();
+    if(window._mapDonutCont) window._mapDonutCont.destroy();
+
+    const cAddr = document.getElementById('mapDonutAddr');
+    if(cAddr) window._mapDonutAddr = new Chart(cAddr, donutOpts(
+        [r.addrParticuliers, r.addrPros, r.addrCollectif, r.addrAutres],
+        ['#3b82f6','#8b5cf6','#f59e0b','#64748b'], totalAdrTypes));
+
+    const cEnq = document.getElementById('mapDonutEnq');
+    if(cEnq) window._mapDonutEnq = new Chart(cEnq, donutOpts(
+        [r.enquetes, r.resteEnq],
+        ['#059669','#ec4899'], totalEnq));
+
+    const cCont = document.getElementById('mapDonutCont');
+    if(cCont) window._mapDonutCont = new Chart(cCont, donutOpts(
+        [r.addrCont, r.addrNon],
+        ['#2563eb','#ef4444'], totalCont));
+}
+
+// ── Replier/déplier le panneau d'info à droite ──
+function toggleMapInfoPanel(){
+    const panel = document.getElementById('mapInfoPanel');
+    const icon = document.getElementById('mapInfoToggleBtn').querySelector('i');
+    panel.classList.toggle('collapsed');
+    icon.className = panel.classList.contains('collapsed') ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+}
+
+// ── Replier/déplier le panneau de contrôle des couches à gauche ──
+function toggleLayerControl(){
+    const body = document.getElementById('layerControlBody');
+    const icon = document.getElementById('layerCtrlToggleBtn').querySelector('i');
+    const collapsed = body.style.display === 'none';
+    body.style.display = collapsed ? '' : 'none';
+    icon.className = collapsed ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
 }
 
 // Mettre à jour la surbrillance de la commune sélectionnée sur la carte
@@ -1847,6 +2076,59 @@ function renderNCMarkers(){
 
     NC_LAYER = L.layerGroup(markers);
     if(NC_VISIBLE) NC_LAYER.addTo(MAIN_MAP);
+}
+
+// ── Couche carte : adresses restant à enquêter (onglet 09_RESTE_A_ENQUETER) ──
+function toggleRAELayer(show){
+    RAE_VISIBLE = show;
+    if(!MAIN_MAP) return;
+    if(RAE_LAYER){
+        if(show) RAE_LAYER.addTo(MAIN_MAP);
+        else MAIN_MAP.removeLayer(RAE_LAYER);
+    }
+}
+
+function renderRAEMarkers(){
+    if(!MAIN_MAP) return;
+    if(RAE_LAYER){ MAIN_MAP.removeLayer(RAE_LAYER); RAE_LAYER=null; }
+    if(!RAE_DATA.length) return;
+
+    // Montrer le contrôle RAE
+    document.getElementById('raeToggleWrap').style.display = 'block';
+    document.getElementById('raeCount').textContent = RAE_DATA.length;
+
+    const markers = RAE_DATA.map(p => {
+        // Petit losange rose (orienté ◆) pour distinguer des autres couches
+        const icon = L.divIcon({
+            html: `<div style="width:9px;height:9px;background:#ec4899;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transform:rotate(45deg);"></div>`,
+            className: '',
+            iconSize: [9,9],
+            iconAnchor: [4.5,4.5]
+        });
+
+        const marker = L.marker([p.lat, p.lng], {icon});
+
+        const typeLabel = p.type ? `<div style="font-size:.7rem;color:#64748b;margin-bottom:4px">Type : <strong>${p.type}</strong></div>` : '';
+        const livrableBadge = p.livrable ? `<span style="background:${p.livrable==='ROUGE'?'#fee2e2':'#fef3c7'};color:${p.livrable==='ROUGE'?'#dc2626':'#d97706'};font-size:.6rem;padding:2px 7px;border-radius:10px;font-weight:700">${p.livrable}</span>` : '';
+
+        marker.bindPopup(`
+            <div style="min-width:190px;font-family:inherit">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap">
+                    <span style="background:#fce7f3;color:#9d174d;font-size:.62rem;padding:2px 7px;border-radius:8px;font-weight:700;font-family:monospace">REFER ${p.refer}</span>
+                    <span style="background:#fdf2f8;color:#ec4899;font-size:.6rem;padding:2px 7px;border-radius:10px;font-weight:700">À ENQUÊTER</span>
+                    ${livrableBadge}
+                </div>
+                <div style="font-weight:700;font-size:.85rem;color:#1e293b;margin-bottom:3px">${p.adresse}</div>
+                <div style="font-size:.72rem;color:#64748b;margin-bottom:5px">${p.commune}</div>
+                ${typeLabel}
+            </div>
+        `, {maxWidth:230});
+
+        return marker;
+    });
+
+    RAE_LAYER = L.layerGroup(markers);
+    if(RAE_VISIBLE) RAE_LAYER.addTo(MAIN_MAP);
 }
 
 function toggleEquipLayer(show){
@@ -2435,6 +2717,7 @@ function renderAvancement(){
 // CARTE THÉMATIQUE — sélecteur de mode
 // ═══════════════════════════════════════
 let MAP_THEME = 'dotation'; // 'aucun' | 'dotation'
+let MAP_FILL_VISIBLE = true; // true = remplissage des communes ; false = contours seuls
 
 function setMapTheme(t){
     MAP_THEME = t;
@@ -2448,19 +2731,26 @@ function setMapTheme(t){
     updateMapLegend();
 }
 
+function toggleMapFill(show){
+    MAP_FILL_VISIBLE = show;
+    if(GEO_LAYER){ GEO_LAYER.setStyle(themeStyle); }
+}
+
 function themeStyle(feature){
     const code = feature.properties.code_insee;
     const r = D.find(x=>String(x.code)===String(code));
     const isSel = D[SEL] && String(D[SEL].code)===String(code);
     if(MAP_THEME==='aucun'){
-        return {fillColor:'#e2e8f0', fillOpacity:isSel?0.5:0.05, color:isSel?'#1e293b':'#94a3b8', weight:isSel?3:1.2, opacity:0.9};
+        const fillOp = MAP_FILL_VISIBLE ? (isSel?0.5:0.05) : (isSel?0.2:0);
+        return {fillColor:'#e2e8f0', fillOpacity:fillOp, color:isSel?'#1e293b':'#94a3b8', weight:isSel?3:1.2, opacity:0.9};
     }
     let color = '#94a3b8';
     if(r){
         const t = pct(r.tauxDotation);
         color = t<30?'#dc2626':t<60?'#f97316':t<80?'#eab308':t<90?'#22c55e':'#059669';
     }
-    return {fillColor:color, fillOpacity:isSel?0.8:0.4, color:isSel?'#1e293b':color, weight:isSel?3:1.5, opacity:0.9};
+    const fillOp = MAP_FILL_VISIBLE ? (isSel?0.8:0.4) : (isSel?0.3:0);
+    return {fillColor:color, fillOpacity:fillOp, color:isSel?'#1e293b':color, weight:isSel?3:1.5, opacity:0.9};
 }
 
 function updateMapLegend(){
